@@ -75,16 +75,16 @@ function recordOp(type: 'write' | 'read', count = 1) {
 export function sanitizeToDriveTextUrl(val?: string | null): string {
   if (!val) return '';
   const trimmed = val.trim();
+  if (trimmed.startsWith('data:image')) {
+    console.warn('Gambar base64 terdeteksi dan dibersihkan dari penyimpanan Firebase untuk meminimalkan kuota.');
+    return ''; // Block base64 strings from being written to Firestore to prevent security rule payload errors
+  }
   // If user pasted a Google Drive share link, convert it to a reliable direct embed text URL
   if (trimmed.includes('drive.google.com/file/d/')) {
     const idMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (idMatch && idMatch[1]) {
       return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
     }
-  }
-  // If raw base64 is inadvertently passed and is overly large, truncate or warn to protect Firestore quota
-  if (trimmed.startsWith('data:image') && trimmed.length > 50000) {
-    console.warn('Gambar berukuran besar terdeteksi. Disarankan unggah ke Google Drive terlebih dahulu.');
   }
   return trimmed;
 }
@@ -319,3 +319,35 @@ export async function loadAllDataFromFirestore(): Promise<{
 }
 
 export const loadAllFromFirestore = loadAllDataFromFirestore;
+
+import { deleteDoc } from 'firebase/firestore';
+
+export async function deleteNewsFromFirestore(newsId: string): Promise<void> {
+  const ref = doc(db, 'news', newsId);
+  await deleteDoc(ref);
+  recordOp('write', 1);
+}
+
+export async function deleteMitraFromFirestore(id: string): Promise<void> {
+  const ref = doc(db, 'mitra', id);
+  await deleteDoc(ref);
+  recordOp('write', 1);
+}
+
+export async function deleteServiceFromFirestore(id: string): Promise<void> {
+  const ref = doc(db, 'services', id);
+  await deleteDoc(ref);
+  recordOp('write', 1);
+}
+
+export async function deleteSystemFromFirestore(id: string): Promise<void> {
+  const ref = doc(db, 'systems', id);
+  await deleteDoc(ref);
+  recordOp('write', 1);
+}
+
+export async function deleteGalleryFromFirestore(id: string): Promise<void> {
+  const ref = doc(db, 'gallery', id);
+  await deleteDoc(ref);
+  recordOp('write', 1);
+}

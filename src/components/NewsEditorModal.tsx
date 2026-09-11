@@ -59,7 +59,7 @@ export default function NewsEditorModal({
   const [date, setDate] = useState(() =>
     new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
   );
-  const [coverType, setCoverType] = useState<'drive' | 'galeri' | 'webp' | 'link'>('drive');
+  const [coverType, setCoverType] = useState<'drive' | 'galeri' | 'link'>('drive');
   const [imageUrl, setImageUrl] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
@@ -73,12 +73,36 @@ export default function NewsEditorModal({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to parse legacy basic Markdown into HTML format for the WYSIWYG editor
+  const convertMarkdownToHtml = (md: string): string => {
+    if (!md) return '';
+    let html = md;
+    // Replace bold **text** or __text__
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    // Replace italic *text* or _text_
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+    // Replace bullet points \n- item
+    html = html.replace(/\n-\s(.*?)(?=\n|$)/g, '<li>$1</li>');
+    // Wrap li in ul
+    if (html.includes('<li>')) {
+      html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
+    }
+    // Replace newlines with <br>
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  };
 
   // Initialize or reset form when modal opens or initialData changes
   useEffect(() => {
+    let initialContent = '';
     if (initialData) {
       setTitle(initialData.title || '');
       const standardCategories = ['Prestasi', 'Layanan', 'Kesehatan', 'Pengumuman', 'Edukasi Kesehatan', 'Promosi Kesehatan', 'Akademik', 'Kegiatan', 'Inovasi', 'Umum'];
@@ -93,10 +117,10 @@ export default function NewsEditorModal({
       setDate(initialData.date || new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }));
       setImageUrl(initialData.imageUrl || '');
       setExcerpt(initialData.excerpt || '');
-      setContent(initialData.content || '');
+      initialContent = initialData.content || '';
       setEmbedCode(initialData.embedCode || '');
       setMode(initialData.isEmbed ? 'embed' : 'berita');
-      setCoverType(initialData.coverType || 'drive');
+      setCoverType((initialData.coverType === 'webp' ? 'drive' : (initialData.coverType || 'drive')) as any);
     } else {
       setTitle('');
       setCategory('Prestasi');
@@ -105,34 +129,39 @@ export default function NewsEditorModal({
       setDate(new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }));
       setImageUrl('');
       setExcerpt('');
-      setContent('');
+      initialContent = '';
       setEmbedCode('');
       setMode('berita');
       setCoverType('drive');
     }
+
+    // Convert basic markdown tags to HTML format for live rich editing
+    const convertedHtml = initialContent.includes('<') ? initialContent : convertMarkdownToHtml(initialContent);
+    setContent(convertedHtml);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = convertedHtml;
+    }
+
     setActiveSubTab('editor');
+    setIsUploading(false);
+    setUploadProgress('');
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  // Insert formatting or wrap selection in textarea
-  const insertFormatting = (prefix: string, suffix: string = '') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+  // Execute standard DOM formatting commands on the contentEditable editor
+  const execFormatter = (command: string, value: string = '') => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+    document.execCommand(command, false, value);
+    handleEditorInput();
+  };
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selectedText = text.substring(start, end);
-
-    const replacement = prefix + (selectedText || 'Teks') + suffix;
-    const newContent = text.substring(0, start) + replacement + text.substring(end);
-    setContent(newContent);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + prefix.length, start + prefix.length + (selectedText ? selectedText.length : 4));
-    }, 0);
+  const handleEditorInput = () => {
+    if (editorRef.current) {
+      setContent(editorRef.current.innerHTML);
+    }
   };
 
   // Quick Emoji Picker list
@@ -157,20 +186,73 @@ export default function NewsEditorModal({
   ];
 
   // Handle local file image upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
+    setUploadProgress('Membaca berkas...');
+
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
-      setImageUrl(base64);
+      setImageUrl(base64); // Show local preview instantly
+
+      const appScriptUrl = localStorage.getItem('sipandu_gas_url') || 'https://script.google.com/macros/s/AKfycbzlnTOpIX84wHErTrqXRV9lFMCxCoxwcwWKQEMUb988UrB3FERMdi_HceZM5P3yh9bUKQ/exec';
+      const driveFolderId = localStorage.getItem('sipandu_drive_folder_id') || '';
+
+      if (appScriptUrl && base64.startsWith('data:')) {
+        setUploadProgress('Mengunggah ke Google Drive...');
+        try {
+          const base64Content = base64.split(',')[1] || base64;
+          const res = await fetch(appScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'uploadImage',
+              fileName: file.name,
+              mimeType: file.type || 'image/jpeg',
+              base64: base64Content,
+              category: 'banner',
+              folderId: driveFolderId || undefined
+            })
+          });
+
+          if (res.ok) {
+            const result = await res.json();
+            if (result.status === 'success' || result.thumbnailUrl) {
+              if (result.thumbnailUrl) {
+                setImageUrl(result.thumbnailUrl);
+              } else if (result.driveUrl) {
+                setImageUrl(result.driveUrl);
+              }
+              setUploadProgress('Berhasil diunggah ke Google Drive!');
+            } else {
+              setUploadProgress('Gagal unggah ke Drive, menggunakan draf lokal');
+            }
+          } else {
+            setUploadProgress('Menggunakan draf lokal (Apps Script offline)');
+          }
+        } catch (err) {
+          console.error('Error uploading to Drive:', err);
+          setUploadProgress('Gagal ke Drive, menggunakan draf lokal');
+        } finally {
+          setIsUploading(false);
+        }
+      } else {
+        setIsUploading(false);
+        setUploadProgress('');
+      }
     };
     reader.readAsDataURL(file);
   };
 
   // Handle Save
   const handleSubmit = async (publishToCloud: boolean) => {
+    if (isUploading) {
+      alert('Mohon tunggu hingga proses unggah gambar ke Google Drive selesai!');
+      return;
+    }
     if (!title.trim()) {
       alert('Mohon masukkan Judul Berita.');
       return;
@@ -318,18 +400,6 @@ export default function NewsEditorModal({
               </button>
               <button
                 type="button"
-                onClick={() => setCoverType('webp')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  coverType === 'webp'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>WebP</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setCoverType('link')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                   coverType === 'link'
@@ -344,7 +414,12 @@ export default function NewsEditorModal({
 
             {/* Dropzone / Upload / Link Form */}
             <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 border-2 border-dashed border-blue-200 dark:border-blue-900/60 rounded-2xl flex flex-col items-center justify-center min-h-[100px] transition text-center relative group">
-              {imageUrl ? (
+              {isUploading ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-4">
+                  <div className="w-8 h-8 rounded-full border-4 border-blue-500/30 border-t-blue-600 animate-spin" />
+                  <p className="text-xs font-extrabold text-blue-600 dark:text-blue-400">{uploadProgress}</p>
+                </div>
+              ) : imageUrl ? (
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
                   <img
                     src={imageUrl}
@@ -415,7 +490,7 @@ export default function NewsEditorModal({
                   <p className="text-xs sm:text-sm font-extrabold text-blue-600 dark:text-blue-400">
                     Pilih Gambar ke Google Drive <span className="font-normal text-slate-500 dark:text-slate-400">atau seret ke sini</span>
                   </p>
-                  <p className="text-[10px] text-slate-400">Format: PNG, JPG, JPEG, WebP (Maks 5MB)</p>
+                  <p className="text-[10px] text-slate-400">Format: PNG, JPG, JPEG (Maks 5MB)</p>
                 </div>
               )}
 
@@ -493,7 +568,7 @@ export default function NewsEditorModal({
               </div>
             ) : activeSubTab === 'editor' ? (
               /* Rich Post Editor */
-              <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800/90 shadow-2xs">
+              <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800/90 shadow-2xs relative">
                 
                 {/* TOOLBAR */}
                 <div className="p-2 border-b border-slate-100 dark:border-slate-700/80 bg-slate-50/90 dark:bg-slate-850 flex flex-wrap items-center gap-1.5 text-slate-700 dark:text-slate-300">
@@ -502,7 +577,7 @@ export default function NewsEditorModal({
                   <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
                     <button
                       type="button"
-                      onClick={() => insertFormatting('**', '**')}
+                      onClick={() => execFormatter('bold')}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded font-bold text-xs cursor-pointer"
                       title="Tebal (Bold)"
                     >
@@ -510,7 +585,7 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => insertFormatting('*', '*')}
+                      onClick={() => execFormatter('italic')}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs cursor-pointer"
                       title="Miring (Italic)"
                     >
@@ -518,7 +593,7 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => insertFormatting('<u>', '</u>')}
+                      onClick={() => execFormatter('underline')}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs cursor-pointer"
                       title="Garis Bawah (Underline)"
                     >
@@ -531,10 +606,10 @@ export default function NewsEditorModal({
                     <select
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val === 'h1') insertFormatting('\n# ', '\n');
-                        if (val === 'h2') insertFormatting('\n## ', '\n');
-                        if (val === 'h3') insertFormatting('\n### ', '\n');
-                        if (val === 'p') insertFormatting('\n', '\n');
+                        if (val === 'h1') execFormatter('formatBlock', '<h1>');
+                        if (val === 'h2') execFormatter('formatBlock', '<h2>');
+                        if (val === 'h3') execFormatter('formatBlock', '<h3>');
+                        if (val === 'p') execFormatter('formatBlock', '<p>');
                         e.target.value = 'default';
                       }}
                       defaultValue="default"
@@ -592,7 +667,7 @@ export default function NewsEditorModal({
                             type="button"
                             onClick={() => {
                               setSelectedColor(c.value);
-                              insertFormatting(`<span style="color: ${c.value}">`, '</span>');
+                              execFormatter('foreColor', c.value);
                               setShowColorPicker(false);
                             }}
                             className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-[11px]"
@@ -628,9 +703,7 @@ export default function NewsEditorModal({
                             type="button"
                             onClick={() => {
                               setHighlightColor(h.value);
-                              if (h.value !== 'transparent') {
-                                insertFormatting(`<mark style="background-color: ${h.value}">`, '</mark>');
-                              }
+                              execFormatter('hiliteColor', h.value);
                               setShowHighlightPicker(false);
                             }}
                             className="w-full flex items-center gap-2 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-left text-[11px]"
@@ -647,7 +720,10 @@ export default function NewsEditorModal({
                   <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
                     <button
                       type="button"
-                      onClick={() => setTextAlign('left')}
+                      onClick={() => {
+                        setTextAlign('left');
+                        execFormatter('justifyLeft');
+                      }}
                       className={`p-1.5 rounded ${textAlign === 'left' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600' : ''}`}
                       title="Rata Kiri"
                     >
@@ -655,7 +731,10 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTextAlign('center')}
+                      onClick={() => {
+                        setTextAlign('center');
+                        execFormatter('justifyCenter');
+                      }}
                       className={`p-1.5 rounded ${textAlign === 'center' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600' : ''}`}
                       title="Rata Tengah"
                     >
@@ -663,7 +742,10 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTextAlign('right')}
+                      onClick={() => {
+                        setTextAlign('right');
+                        execFormatter('justifyRight');
+                      }}
                       className={`p-1.5 rounded ${textAlign === 'right' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600' : ''}`}
                       title="Rata Kanan"
                     >
@@ -671,7 +753,10 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTextAlign('justify')}
+                      onClick={() => {
+                        setTextAlign('justify');
+                        execFormatter('justifyFull');
+                      }}
                       className={`p-1.5 rounded ${textAlign === 'justify' ? 'bg-slate-100 dark:bg-slate-700 text-blue-600' : ''}`}
                       title="Rata Kanan Kiri"
                     >
@@ -683,7 +768,7 @@ export default function NewsEditorModal({
                   <div className="flex items-center bg-white dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
                     <button
                       type="button"
-                      onClick={() => insertFormatting('\n- ', '')}
+                      onClick={() => execFormatter('insertUnorderedList')}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs"
                       title="Bullet List"
                     >
@@ -691,7 +776,7 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => insertFormatting('\n1. ', '')}
+                      onClick={() => execFormatter('insertOrderedList')}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs"
                       title="Numbered List"
                     >
@@ -699,7 +784,7 @@ export default function NewsEditorModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => insertFormatting('\n> ', '\n')}
+                      onClick={() => execFormatter('formatBlock', '<blockquote>')}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs"
                       title="Kutipan (Quote)"
                     >
@@ -713,7 +798,7 @@ export default function NewsEditorModal({
                       type="button"
                       onClick={() => {
                         const url = prompt('Masukkan URL Tautan:', 'https://');
-                        if (url) insertFormatting(`[`, `](${url})`);
+                        if (url) execFormatter('createLink', url);
                       }}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs"
                       title="Sisipkan Tautan (Link)"
@@ -737,7 +822,7 @@ export default function NewsEditorModal({
                               key={emoji}
                               type="button"
                               onClick={() => {
-                                insertFormatting(emoji, '');
+                                execFormatter('insertHTML', emoji);
                                 setShowEmojiPicker(false);
                               }}
                               className="text-base p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-center"
@@ -752,7 +837,7 @@ export default function NewsEditorModal({
                       type="button"
                       onClick={() => {
                         const imgUrl = prompt('Masukkan URL Gambar:', 'https://');
-                        if (imgUrl) insertFormatting(`\n![Gambar](${imgUrl})\n`);
+                        if (imgUrl) execFormatter('insertImage', imgUrl);
                       }}
                       className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs"
                       title="Sisipkan Gambar Inline"
@@ -763,20 +848,24 @@ export default function NewsEditorModal({
 
                 </div>
 
-                {/* TEXTAREA WRAPPER */}
-                <textarea
-                  ref={textareaRef}
-                  rows={10}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Tuliskan isi berita lengkap di sini... Anda dapat menggunakan toolbar di atas untuk format teks, kutipan, list, dan menyisipkan media."
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    textAlign: textAlign,
-                    color: selectedColor
-                  }}
-                  className="w-full p-4 bg-transparent border-0 focus:outline-hidden focus:ring-0 leading-relaxed font-sans placeholder-slate-400 resize-y min-h-[220px]"
-                />
+                {/* RICH TEXT EDITOR (contentEditable) */}
+                <div className="relative bg-transparent min-h-[250px] max-h-[400px] overflow-y-auto">
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    onInput={handleEditorInput}
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      color: selectedColor
+                    }}
+                    className="w-full p-4 bg-transparent border-0 focus:outline-hidden focus:ring-0 leading-relaxed font-sans min-h-[250px] outline-hidden prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200"
+                  />
+                  {(!content || content === '<br>' || content === '') && (
+                    <div className="absolute top-4 left-4 text-slate-400 pointer-events-none select-none text-xs sm:text-sm">
+                      Tuliskan isi berita lengkap di sini... Anda dapat menggunakan toolbar di atas untuk format teks langsung (WYSIWYG).
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               /* LIVE PREVIEW MODE */
@@ -802,9 +891,10 @@ export default function NewsEditorModal({
                     </p>
                   )}
                 </div>
-                <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed pt-2 border-t border-slate-200 dark:border-slate-700">
-                  {content || 'Belum ada konten berita.'}
-                </div>
+                <div 
+                  className="prose dark:prose-invert max-w-none text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed pt-2 border-t border-slate-200 dark:border-slate-700 rich-text-content"
+                  dangerouslySetInnerHTML={{ __html: content || 'Belum ada konten berita.' }}
+                />
               </div>
             )}
           </div>
@@ -823,7 +913,7 @@ export default function NewsEditorModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
               className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               Batal
@@ -832,21 +922,21 @@ export default function NewsEditorModal({
             <button
               type="button"
               onClick={() => handleSubmit(false)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
               className="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-extrabold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <span>Simpan Draf (Lokal)</span>
+              <span>{isUploading ? 'Menunggu Unggah...' : 'Simpan Draf (Lokal)'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleSubmit(true)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
               className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'Memproses...' : 'Publikasikan Berita'}</span>
+              <span>{isUploading ? 'Mengunggah...' : isSubmitting ? 'Memproses...' : 'Publikasikan Berita'}</span>
             </button>
           </div>
 

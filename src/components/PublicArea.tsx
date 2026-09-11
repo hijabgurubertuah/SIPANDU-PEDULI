@@ -804,9 +804,10 @@ export default function PublicArea({
                       dangerouslySetInnerHTML={{ __html: n.embedCode }}
                     />
                   ) : (
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                      {n.content}
-                    </p>
+                    <div 
+                      className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line rich-text-content"
+                      dangerouslySetInnerHTML={{ __html: n.content }}
+                    />
                   )}
                 </div>
               ))}

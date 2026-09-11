@@ -70,7 +70,12 @@ import {
   saveServicesToFirestore,
   saveSystemsToFirestore,
   saveNewsToFirestore,
-  saveGalleryToFirestore
+  saveGalleryToFirestore,
+  deleteNewsFromFirestore,
+  deleteMitraFromFirestore,
+  deleteServiceFromFirestore,
+  deleteSystemFromFirestore,
+  deleteGalleryFromFirestore
 } from '../lib/firebase';
 
 interface AdminPortalProps {
@@ -247,6 +252,26 @@ export default function AdminPortal({
   const [newsFilter, setNewsFilter] = useState<'all' | 'draft' | 'cloud'>('all');
   const [isNewsEditorOpen, setIsNewsEditorOpen] = useState(false);
   const [editingNewsItem, setEditingNewsItem] = useState<NewsAnnouncement | null>(null);
+
+  // Custom Confirmation Dialog States
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState('');
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmCallback, setConfirmCallback] = useState<(() => void | Promise<void>) | null>(null);
+  const [confirmIsDanger, setConfirmIsDanger] = useState(true);
+
+  const triggerConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void | Promise<void>,
+    isDanger = true
+  ) => {
+    setConfirmTitle(title);
+    setConfirmMessage(message);
+    setConfirmCallback(() => onConfirm);
+    setConfirmIsDanger(isDanger);
+    setShowConfirm(true);
+  };
 
   const handleSaveNewsItem = async (newsItem: NewsAnnouncement, isPublishToCloud: boolean) => {
     let updatedList: NewsAnnouncement[];
@@ -447,11 +472,16 @@ export default function AdminPortal({
   };
 
   const handleResetDock = () => {
-    if (window.confirm('Kembalikan konfigurasi Docker Mobile ke pengaturan bawaan?')) {
-      setDockForm(DEFAULT_DOCK_CONFIG);
-      onUpdateDockConfig(DEFAULT_DOCK_CONFIG);
-      showToast('Docker mobile dikembalikan ke pengaturan bawaan.');
-    }
+    triggerConfirm(
+      'Reset Docker Mobile',
+      'Apakah Anda yakin ingin mengembalikan konfigurasi Docker Mobile ke pengaturan bawaan?',
+      () => {
+        setDockForm(DEFAULT_DOCK_CONFIG);
+        onUpdateDockConfig(DEFAULT_DOCK_CONFIG);
+        showToast('Docker mobile dikembalikan ke pengaturan bawaan.');
+      },
+      false
+    );
   };
 
   // Mitra Management
@@ -492,10 +522,20 @@ export default function AdminPortal({
   };
 
   const handleDeleteMitra = (id: string, name: string) => {
-    if (window.confirm(`Yakin ingin menghapus mitra "${name}"?`)) {
-      onUpdateMitraList(mitraList.filter((m) => m.id !== id));
-      showToast('Mitra pelayanan telah dihapus');
-    }
+    triggerConfirm(
+      'Hapus Mitra Pelayanan',
+      `Yakin ingin menghapus mitra "${name}"?`,
+      async () => {
+        onUpdateMitraList(mitraList.filter((m) => m.id !== id));
+        try {
+          await deleteMitraFromFirestore(id);
+          showToast('Mitra pelayanan telah dihapus dari Firebase!');
+        } catch (err) {
+          showToast('Mitra pelayanan dihapus lokal.');
+        }
+      },
+      true
+    );
   };
 
   // Services & Poliklinik Handlers
@@ -552,21 +592,26 @@ export default function AdminPortal({
     }
   };
 
-  const handleDeleteService = async (id: string, name: string) => {
-    if (window.confirm(`Yakin ingin menghapus poliklinik "${name}"?`)) {
-      const updatedList = services.filter((s) => s.id !== id);
-      onUpdateServices(updatedList);
-      showToast(`Poliklinik "${name}" telah dihapus.`);
+  const handleDeleteService = (id: string, name: string) => {
+    triggerConfirm(
+      'Hapus Poliklinik',
+      `Yakin ingin menghapus poliklinik "${name}"?`,
+      async () => {
+        const updatedList = services.filter((s) => s.id !== id);
+        onUpdateServices(updatedList);
+        showToast(`Poliklinik "${name}" telah dihapus.`);
 
-      setIsSavingCloud(true);
-      try {
-        await saveServicesToFirestore(updatedList);
-      } catch (err) {
-        // offline silent
-      } finally {
-        setIsSavingCloud(false);
-      }
-    }
+        setIsSavingCloud(true);
+        try {
+          await saveServicesToFirestore(updatedList);
+        } catch (err) {
+          // offline silent
+        } finally {
+          setIsSavingCloud(false);
+        }
+      },
+      true
+    );
   };
 
   // Drive Gallery Handlers
@@ -657,10 +702,15 @@ export default function AdminPortal({
   };
 
   const handleDeleteDriveFile = (id: string) => {
-    if (window.confirm('Hapus berkas ini dari galeri visual?')) {
-      onUpdateDriveGallery(driveGallery.filter((f) => f.id !== id));
-      showToast('Berkas dihapus dari galeri');
-    }
+    triggerConfirm(
+      'Hapus Berkas Galeri',
+      'Apakah Anda yakin ingin menghapus berkas ini dari galeri visual?',
+      () => {
+        onUpdateDriveGallery(driveGallery.filter((f) => f.id !== id));
+        showToast('Berkas dihapus dari galeri');
+      },
+      true
+    );
   };
 
   const handleSetAsActiveLogo = (item: DriveFileItem) => {
@@ -700,10 +750,15 @@ export default function AdminPortal({
 
   // Reset to default settings
   const handleResetDefaults = () => {
-    if (window.confirm('Apakah Anda yakin ingin mengembalikan semua teks dan pengaturan ke bawaan awal?')) {
-      onUpdateAdminPassword('sipandu123');
-      showToast('Kata sandi telah direset ke sipandu123');
-    }
+    triggerConfirm(
+      'Reset ke Pengaturan Awal',
+      'Apakah Anda yakin ingin mengembalikan semua teks dan pengaturan ke bawaan awal? Tindakan ini akan mereset sandi admin ke sipandu123.',
+      () => {
+        onUpdateAdminPassword('sipandu123');
+        showToast('Kata sandi telah direset ke sipandu123');
+      },
+      true
+    );
   };
 
   // ====================================================
@@ -941,7 +996,6 @@ function doGet(e) {
   const navMenuItems = [
     { id: 'overview', label: 'Ringkasan & Status', icon: LayoutGrid, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { id: 'pegawai', label: 'Portal Pegawai Internal', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
-    { id: 'firebase', label: 'Status Firebase Cloud', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { id: 'identity', label: 'Identitas & Logo', icon: Image, color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { id: 'marquee', label: 'Teks Berjalan (Marquee)', icon: Type, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
     { id: 'dock', label: 'Docker Mobile HP', icon: Smartphone, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
@@ -951,7 +1005,8 @@ function doGet(e) {
     { id: 'systems', label: 'Gateway Sistem Digital', icon: SlidersHorizontal, color: 'text-violet-500', bg: 'bg-violet-500/10' },
     { id: 'news', label: 'Berita & Pengumuman', icon: FolderOpen, color: 'text-orange-500', bg: 'bg-orange-500/10' },
     { id: 'appscript', label: 'Kode Apps Script & Sync', icon: Code, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-    { id: 'security', label: 'Ganti Kata Sandi', icon: KeyRound, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+    { id: 'security', label: 'Ganti Kata Sandi', icon: KeyRound, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'firebase', label: 'Status Firebase Cloud', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' }
   ];
 
   return (
@@ -1198,295 +1253,275 @@ function doGet(e) {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               
-              {/* Colorful Professional Action Buttons Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              {/* Header Banner: Welcome Title & Rotating Y Logo */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 text-center shadow-xs flex flex-col items-center justify-center space-y-4 overflow-hidden relative">
+                <style>{`
+                  @keyframes rotateYAnim {
+                    0% { transform: rotateY(0deg); }
+                    100% { transform: rotateY(360deg); }
+                  }
+                  .animate-rotate-y {
+                    animation: rotateYAnim 6s linear infinite;
+                    transform-style: preserve-3d;
+                  }
+                `}</style>
+                
+                {/* Rotating Y Logo */}
+                <div className="relative group">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-blue-500/10 border-2 border-dashed border-emerald-400/50 p-3 flex items-center justify-center shadow-xs">
+                    <div className="w-full h-full flex items-center justify-center animate-rotate-y">
+                      {siteSettings.logoUrl ? (
+                        <img
+                          src={siteSettings.logoUrl}
+                          alt="Logo Puskesmas"
+                          className="w-full h-full object-contain drop-shadow-md"
+                        />
+                      ) : (
+                        <Building2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 drop-shadow-md" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="max-w-xl space-y-1">
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                    Selamat datang di Portal Admin
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    {siteSettings.name || 'Puskesmas Kepanjen'} — Dashboard Pengelolaan & Akses Cepat Sistem
+                  </p>
+                </div>
+              </div>
+
+              {/* Colorful Professional Action Buttons Grid (Thinner, no subtext) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 
                 {/* 1. Logo Puskesmas */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('identity')}
-                  className="p-4 rounded-2xl border border-teal-200 dark:border-teal-900/60 bg-gradient-to-br from-teal-50 to-emerald-50/50 dark:from-teal-950/40 dark:to-emerald-950/20 hover:from-teal-100 hover:to-emerald-100 dark:hover:from-teal-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-teal-200 dark:border-teal-900/60 bg-gradient-to-r from-teal-50/80 to-emerald-50/40 dark:from-teal-950/40 dark:to-emerald-950/20 hover:from-teal-100 hover:to-emerald-100 dark:hover:from-teal-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Image className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Image className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-teal-100 text-teal-800 dark:bg-teal-900/80 dark:text-teal-200">
-                      {siteSettings.logoUrl ? 'Kustom' : 'Default'}
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-teal-600 transition-colors truncate">
+                      Logo Puskesmas
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-teal-600 transition-colors">
-                      Logo Puskesmas
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Atur logo & identitas web
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-teal-100 text-teal-800 dark:bg-teal-900/80 dark:text-teal-200 shrink-0">
+                    {siteSettings.logoUrl ? 'Kustom' : 'Default'}
+                  </span>
                 </button>
 
                 {/* 2. Running Text (Marquee) */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('marquee')}
-                  className="p-4 rounded-2xl border border-cyan-200 dark:border-cyan-900/60 bg-gradient-to-br from-cyan-50 to-blue-50/50 dark:from-cyan-950/40 dark:to-blue-950/20 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-cyan-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-cyan-200 dark:border-cyan-900/60 bg-gradient-to-r from-cyan-50/80 to-blue-50/40 dark:from-cyan-950/40 dark:to-blue-950/20 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-cyan-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Type className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Type className="w-4 h-4" />
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${marqueeSettings.enabled ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
-                      {marqueeSettings.enabled ? 'Aktif' : 'Off'}
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 transition-colors truncate">
+                      Running Text
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-cyan-600 transition-colors">
-                      Running Text
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Teks pengumuman berjalan
-                    </p>
-                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${marqueeSettings.enabled ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                    {marqueeSettings.enabled ? 'Aktif' : 'Off'}
+                  </span>
                 </button>
 
                 {/* 3. Docker Mobile HP */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('dock')}
-                  className="p-4 rounded-2xl border border-fuchsia-200 dark:border-fuchsia-900/60 bg-gradient-to-br from-fuchsia-50 to-pink-50/50 dark:from-fuchsia-950/40 dark:to-pink-950/20 hover:from-fuchsia-100 hover:to-pink-100 dark:hover:from-fuchsia-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-fuchsia-200 dark:border-fuchsia-900/60 bg-gradient-to-r from-fuchsia-50/80 to-pink-50/40 dark:from-fuchsia-950/40 dark:to-pink-950/20 hover:from-fuchsia-100 hover:to-pink-100 dark:hover:from-fuchsia-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-fuchsia-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Smartphone className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-fuchsia-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Smartphone className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/80 dark:text-fuchsia-200">
-                      {dockConfig.enabled ? `${dockConfig.items.filter(i => i.isEnabled).length} Tombol` : 'Off'}
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-fuchsia-600 transition-colors truncate">
+                      Docker Mobile HP
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-fuchsia-600 transition-colors">
-                      Docker Mobile HP
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Navigasi bawah smartphone
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/80 dark:text-fuchsia-200 shrink-0">
+                    {dockConfig.enabled ? `${dockConfig.items.filter(i => i.isEnabled).length} Tombol` : 'Off'}
+                  </span>
                 </button>
 
                 {/* 4. Poliklinik & Layanan */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('services')}
-                  className="p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/20 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-gradient-to-r from-blue-50/80 to-indigo-50/40 dark:from-blue-950/40 dark:to-indigo-950/20 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <HeartPulse className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <HeartPulse className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-900/80 dark:text-blue-200">
-                      {services.length} Poli
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors truncate">
+                      Jadwal & Layanan Poli
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                      Jadwal & Layanan Poli
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Ubah jadwal & dokter poli
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-900/80 dark:text-blue-200 shrink-0">
+                    {services.length} Poli
+                  </span>
                 </button>
 
                 {/* 5. Mitra Pelayanan */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('mitra')}
-                  className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/40 dark:to-orange-950/20 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/80 to-orange-50/40 dark:from-amber-950/40 dark:to-orange-950/20 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Users className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Users className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200">
-                      {mitraList.length} Mitra
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors truncate">
+                      Mitra Faskes & Posyandu
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">
-                      Mitra Faskes & Posyandu
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Pustu, Posyandu ILP & TPMD
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200 shrink-0">
+                    {mitraList.length} Mitra
+                  </span>
                 </button>
 
                 {/* 6. Gateway Sistem Digital */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('systems')}
-                  className="p-4 rounded-2xl border border-violet-200 dark:border-violet-900/60 bg-gradient-to-br from-violet-50 to-purple-50/50 dark:from-violet-950/40 dark:to-purple-950/20 hover:from-violet-100 hover:to-purple-100 dark:hover:from-violet-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-violet-200 dark:border-violet-900/60 bg-gradient-to-r from-violet-50/80 to-purple-50/40 dark:from-violet-950/40 dark:to-purple-950/20 hover:from-violet-100 hover:to-purple-100 dark:hover:from-violet-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <SlidersHorizontal className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <SlidersHorizontal className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-violet-100 text-violet-800 dark:bg-violet-900/80 dark:text-violet-200">
-                      {systems.length} Aplikasi
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-violet-600 transition-colors truncate">
+                      Gateway Sistem Digital
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-violet-600 transition-colors">
-                      Gateway Sistem Digital
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Tautan SIMPUS, BPJS, e-Kinerja
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-violet-100 text-violet-800 dark:bg-violet-900/80 dark:text-violet-200 shrink-0">
+                    {systems.length} Aplikasi
+                  </span>
                 </button>
 
                 {/* 7. Galeri Drive */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('gallery')}
-                  className="p-4 rounded-2xl border border-sky-200 dark:border-sky-900/60 bg-gradient-to-br from-sky-50 to-blue-50/50 dark:from-sky-950/40 dark:to-blue-950/20 hover:from-sky-100 hover:to-blue-100 dark:hover:from-sky-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-sky-200 dark:border-sky-900/60 bg-gradient-to-r from-sky-50/80 to-blue-50/40 dark:from-sky-950/40 dark:to-blue-950/20 hover:from-sky-100 hover:to-blue-100 dark:hover:from-sky-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <HardDrive className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <HardDrive className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-sky-800 dark:bg-sky-900/80 dark:text-sky-200">
-                      {driveGallery.length} Berkas
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-sky-600 transition-colors truncate">
+                      Galeri & Drive
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-sky-600 transition-colors">
-                      Galeri & Drive
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Kelola gambar & dokumen
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-sky-800 dark:bg-sky-900/80 dark:text-sky-200 shrink-0">
+                    {driveGallery.length} Berkas
+                  </span>
                 </button>
 
                 {/* 8. Berita & Pengumuman */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('news')}
-                  className="p-4 rounded-2xl border border-orange-200 dark:border-orange-900/60 bg-gradient-to-br from-orange-50 to-amber-50/50 dark:from-orange-950/40 dark:to-amber-950/20 hover:from-orange-100 hover:to-amber-100 dark:hover:from-orange-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-orange-200 dark:border-orange-900/60 bg-gradient-to-r from-orange-50/80 to-amber-50/40 dark:from-orange-950/40 dark:to-amber-950/20 hover:from-orange-100 hover:to-amber-100 dark:hover:from-orange-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <FolderOpen className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <FolderOpen className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-orange-800 dark:bg-orange-900/80 dark:text-orange-200">
-                      {newsList.length} Item
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-orange-600 transition-colors truncate">
+                      Berita & Pengumuman
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-orange-600 transition-colors">
-                      Berita & Pengumuman
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Kabar kesehatan & edukasi
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-orange-800 dark:bg-orange-900/80 dark:text-orange-200 shrink-0">
+                    {newsList.length} Item
+                  </span>
                 </button>
 
                 {/* 9. Portal Pegawai Internal */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('pegawai')}
-                  className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/20 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-gradient-to-r from-emerald-50/80 to-teal-50/40 dark:from-emerald-950/40 dark:to-teal-950/20 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Building2 className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Building2 className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200">
-                      Pegawai
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors truncate">
                       Portal Pegawai Internal
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      E-Kinerja, SOP & Logbook
-                    </p>
-                  </div>
-                </button>
-
-                {/* 10. Status Firebase Cloud */}
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('firebase')}
-                  className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-gradient-to-br from-rose-50 to-red-50/50 dark:from-rose-950/40 dark:to-red-950/20 hover:from-rose-100 hover:to-red-100 dark:hover:from-rose-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Database className="w-5 h-5" />
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200">
-                      Cloud
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-rose-600 transition-colors">
-                      Status Firebase Cloud
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Database & real-time sync
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200 shrink-0">
+                    Pegawai
+                  </span>
                 </button>
 
-                {/* 11. Kode Apps Script */}
+                {/* 10. Kode Apps Script */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('appscript')}
-                  className="p-4 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50 to-violet-50/50 dark:from-indigo-950/40 dark:to-violet-950/20 hover:from-indigo-100 hover:to-violet-100 dark:hover:from-indigo-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-50/80 to-violet-50/40 dark:from-indigo-950/40 dark:to-violet-950/20 hover:from-indigo-100 hover:to-violet-100 dark:hover:from-indigo-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <Code className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Code className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-900/80 dark:text-indigo-200">
-                      Sync
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
+                      Apps Script & Drive
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
-                      Apps Script & Drive
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Kode automasi backend
-                    </p>
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-900/80 dark:text-indigo-200 shrink-0">
+                    Sync
+                  </span>
                 </button>
 
-                {/* 12. Keamanan & Sandi */}
+                {/* 11. Keamanan & Sandi */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('security')}
-                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-950 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-800 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                  className="px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-950 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-800 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <div className="w-9 h-9 rounded-xl bg-slate-700 dark:bg-slate-800 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                      <KeyRound className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-slate-700 dark:bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <KeyRound className="w-4 h-4" />
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                      Sandi
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors truncate">
+                      Ganti Sandi Admin
                     </span>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
-                      Ganti Sandi Admin
-                    </h3>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Keamanan akun CMS
-                    </p>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200 shrink-0">
+                    Sandi
+                  </span>
+                </button>
+
+                {/* 12. Status Firebase Cloud */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('firebase')}
+                  className="px-3.5 py-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-gradient-to-r from-rose-50/80 to-red-50/40 dark:from-rose-950/40 dark:to-red-950/20 hover:from-rose-100 hover:to-red-100 dark:hover:from-rose-900/60 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex items-center justify-between gap-3 group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                      <Database className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-rose-600 transition-colors truncate">
+                      Status Firebase Cloud
+                    </span>
                   </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200 shrink-0">
+                    Cloud
+                  </span>
                 </button>
 
               </div>
@@ -2738,14 +2773,14 @@ function doGet(e) {
           {/* ================= TAB 8: BERITA & PENGUMUMAN ================= */}
           {activeTab === 'news' && (
             <div className="space-y-6">
-              {/* Top prominent Blue Button matching Capture.PNG */}
+              {/* Top prominent Green Button matching app theme */}
               <button
                 type="button"
                 onClick={() => {
                   setEditingNewsItem(null);
                   setIsNewsEditorOpen(true);
                 }}
-                className="w-full py-4 px-6 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg rounded-2xl shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg rounded-2xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <Plus className="w-5 h-5 stroke-[2.5]" />
                 <span>Tulis Berita Baru</span>
@@ -2947,10 +2982,20 @@ function doGet(e) {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (confirm(`Hapus berita "${item.title}"?`)) {
-                                      onUpdateNewsList(newsList.filter((n) => n.id !== item.id));
-                                      showToast('Berita telah dihapus');
-                                    }
+                                    triggerConfirm(
+                                      'Hapus Berita',
+                                      `Apakah Anda yakin ingin menghapus berita "${item.title}"? Tindakan ini akan menghapus data berita dari Firebase Firestore secara permanen.`,
+                                      async () => {
+                                        onUpdateNewsList(newsList.filter((n) => n.id !== item.id));
+                                        try {
+                                          await deleteNewsFromFirestore(item.id);
+                                          showToast('Berita telah dihapus dari Firebase!');
+                                        } catch (err) {
+                                          showToast('Berita dihapus secara lokal.');
+                                        }
+                                      },
+                                      true
+                                    );
                                   }}
                                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                                   title="Hapus Berita"
@@ -3487,6 +3532,54 @@ function doGet(e) {
           url: g.thumbnailUrl || g.driveUrl
         }))}
       />
+
+      {/* Custom Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-3">
+              <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center ${confirmIsDanger ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400' : 'bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400'}`}>
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                {confirmTitle}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {confirmMessage}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConfirm(false);
+                  setConfirmCallback(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-extrabold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (confirmCallback) {
+                    try {
+                      await confirmCallback();
+                    } catch (err) {
+                      console.error('Error executing confirm callback:', err);
+                    }
+                  }
+                  setShowConfirm(false);
+                  setConfirmCallback(null);
+                }}
+                className={`flex-1 py-2.5 rounded-xl text-white font-black text-xs transition cursor-pointer ${confirmIsDanger ? 'bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/15' : 'bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/15'}`}
+              >
+                Ya, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
