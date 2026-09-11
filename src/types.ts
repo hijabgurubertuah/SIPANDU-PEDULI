@@ -119,13 +119,19 @@ export interface HealthPostMitra {
 export interface NewsAnnouncement {
   id: string;
   title: string;
-  category: 'Berita' | 'Pengumuman' | 'Edukasi Kesehatan' | 'Promosi Kesehatan';
+  category: string;
   date: string;
   excerpt: string;
   content: string;
   imageUrl?: string;
   author: string;
   isImportant?: boolean;
+  status?: 'Published' | 'Draft';
+  storageType?: 'Cloud' | 'Lokal';
+  coverType?: 'drive' | 'galeri' | 'webp' | 'link';
+  embedCode?: string;
+  isEmbed?: boolean;
+  isBookmarked?: boolean;
 }
 
 export interface SiteSettings {

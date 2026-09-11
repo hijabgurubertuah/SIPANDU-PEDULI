@@ -772,21 +772,42 @@ export default function PublicArea({
               {newsList.map((n) => (
                 <div
                   key={n.id}
-                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-2"
+                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 space-y-3 shadow-xs hover:shadow-md transition overflow-hidden"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                      {n.category}
-                    </span>
-                    <span className="text-xs text-slate-400">• {n.date}</span>
-                    <span className="text-xs text-slate-400">• Oleh {n.author}</span>
+                  {n.imageUrl && (
+                    <img
+                      src={n.imageUrl}
+                      alt={n.title}
+                      className="w-full max-h-72 object-cover rounded-xl border border-slate-200 dark:border-slate-700"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {n.isBookmarked && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        ⭐ Unggulan
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400">📅 {n.date}</span>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug">
                     {n.title}
                   </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {n.content}
-                  </p>
+                  {n.excerpt && (
+                    <p className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 italic border-l-3 border-emerald-500 pl-3">
+                      {n.excerpt}
+                    </p>
+                  )}
+                  {n.isEmbed && n.embedCode ? (
+                    <div
+                      className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 my-2"
+                      dangerouslySetInnerHTML={{ __html: n.embedCode }}
+                    />
+                  ) : (
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                      {n.content}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

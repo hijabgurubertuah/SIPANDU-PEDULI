@@ -121,47 +121,74 @@ export default function PortalPegawai({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Top Welcome Bar & Role Badge */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-extrabold text-lg shadow-md shadow-emerald-700/20">
-            {currentUser.name.split(' ')[0][0]}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col gap-4">
+        
+        {/* Quick User / Role Simulation Selector Above Name */}
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-xl p-2.5 sm:p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs max-w-full overflow-hidden">
+          <div className="flex items-center gap-2 font-extrabold text-amber-900 dark:text-amber-200 shrink-0">
+            <UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-xs font-bold">Simulasi Akun Pegawai:</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
-                Selamat Datang, {currentUser.name}
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                {currentUser.roleLabel}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Unit Tugas: <strong>{currentUser.unitName}</strong> • NIP: {currentUser.nip}
-            </p>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
+            <select
+              value={currentUser.id}
+              onChange={(e) => {
+                const found = MOCK_USERS.find((u) => u.id === e.target.value);
+                if (found) onSelectUser(found);
+              }}
+              className="flex-1 sm:w-60 min-w-0 max-w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700/80 rounded-lg text-slate-900 dark:text-white font-bold text-xs shadow-2xs focus:ring-2 focus:ring-amber-500 cursor-pointer truncate"
+              title="Pilih Akun Simulasi"
+            >
+              {MOCK_USERS.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setIsRoleModalOpen(true)}
+              className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-extrabold text-[11px] shrink-0 transition cursor-pointer shadow-2xs whitespace-nowrap"
+              title="Lihat Rincian Hak Akses All User"
+            >
+              Detail Role
+            </button>
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Simulasi Hak Akses Button */}
-          <button
-            onClick={() => setIsRoleModalOpen(true)}
-            className="px-3.5 py-2 bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
-            title="Klik untuk Simulasi Hak Akses & Role Pengguna"
-          >
-            <UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span>Simulasi Hak Akses ({currentUser.roleLabel})</span>
-          </button>
+        {/* User Profile Header Info */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-extrabold text-lg shadow-md shadow-emerald-700/20 shrink-0">
+              {currentUser.name.split(' ')[0][0]}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                  Selamat Datang, {currentUser.name}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  {currentUser.roleLabel}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Unit Tugas: <strong>{currentUser.unitName}</strong> • NIP: {currentUser.nip}
+              </p>
+            </div>
+          </div>
 
-          {canAdd && (
-            <button
-              onClick={onOpenAddDocument}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tautkan Dokumen / Data Dukung</span>
-            </button>
-          )}
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {canAdd && (
+              <button
+                onClick={onOpenAddDocument}
+                className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tautkan Dokumen / Data Dukung</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

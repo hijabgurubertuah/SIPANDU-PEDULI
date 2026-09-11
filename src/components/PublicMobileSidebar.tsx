@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   X,
   Home,
@@ -41,6 +42,22 @@ export default function PublicMobileSidebar({
   darkMode,
   onToggleDarkMode
 }: PublicMobileSidebarProps) {
+  // Prevent background page scrolling & touch swiping when sidebar drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalTouchAction = document.body.style.touchAction;
+
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.touchAction = originalTouchAction;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const navLinks = [
@@ -95,17 +112,25 @@ export default function PublicMobileSidebar({
   ];
 
   return (
-    <div className="lg:hidden fixed inset-0 z-50 flex animate-in fade-in duration-200">
+    <div
+      className="lg:hidden fixed inset-0 z-50 flex animate-in fade-in duration-200 overscroll-none touch-none"
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity touch-none"
         onClick={onClose}
+        onTouchMove={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
       />
 
       {/* Drawer Panel Sliding From Left */}
       <aside
         aria-label="Menu Navigasi Sidebar"
-        className="relative w-80 max-w-[85vw] bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col justify-between border-r border-slate-200 dark:border-slate-800 animate-in slide-in-from-left duration-300 z-10"
+        className="relative w-80 max-w-[85vw] bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col justify-between border-r border-slate-200 dark:border-slate-800 animate-in slide-in-from-left duration-300 z-10 touch-auto overscroll-contain"
+        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
         <div className="p-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-emerald-700 dark:bg-emerald-950 text-white">
