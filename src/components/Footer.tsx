@@ -1,12 +1,13 @@
-import { Activity, MapPin, Phone, Mail, Instagram, ShieldCheck, HeartPulse } from 'lucide-react';
-import { PUSKESMAS_INFO } from '../data/mockData';
+import { Activity, MapPin, Phone, Mail, Instagram, ShieldCheck, HeartPulse, Settings } from 'lucide-react';
+import { SiteSettings } from '../types';
 
 interface FooterProps {
   onSelectTab: (tab: string) => void;
-  onSelectView: (view: 'public' | 'pegawai') => void;
+  onSelectView: (view: 'public' | 'pegawai' | 'admin') => void;
+  siteSettings: SiteSettings;
 }
 
-export default function Footer({ onSelectTab, onSelectView }: FooterProps) {
+export default function Footer({ onSelectTab, onSelectView, siteSettings }: FooterProps) {
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -16,8 +17,16 @@ export default function Footer({ onSelectTab, onSelectView }: FooterProps) {
           {/* Col 1: Identity */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-extrabold shadow-md">
-                <Activity className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-extrabold shadow-md overflow-hidden p-1">
+                {siteSettings.logoUrl ? (
+                  <img
+                    src={siteSettings.logoUrl}
+                    alt="Logo"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <Activity className="w-6 h-6" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
@@ -26,12 +35,12 @@ export default function Footer({ onSelectTab, onSelectView }: FooterProps) {
                     PEDULI
                   </span>
                 </div>
-                <p className="text-[11px] text-emerald-400 font-medium">UPTD Puskesmas Kepanjen</p>
+                <p className="text-[11px] text-emerald-400 font-medium">{siteSettings.name}</p>
               </div>
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi untuk Layanan Integratif. Memusatkan akses informasi publik, pelayanan, dan monitoring kinerja kesehatan.
+              {siteSettings.subtitle}
             </p>
 
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-[11px] text-emerald-300">
@@ -156,48 +165,56 @@ export default function Footer({ onSelectTab, onSelectView }: FooterProps) {
           {/* Col 4: Kontak Resmi */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              Kontak Puskesmas Kepanjen
+              Kontak {siteSettings.name}
             </h4>
             <div className="space-y-2 text-xs text-slate-400">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>{PUSKESMAS_INFO.address}</span>
+                <span>{siteSettings.address}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
                 <a
-                  href={PUSKESMAS_INFO.whatsappUrl}
+                  href={siteSettings.whatsappUrl || `https://wa.me/${siteSettings.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-white hover:text-emerald-400 font-bold"
                 >
-                  WA: {PUSKESMAS_INFO.whatsapp}
+                  WA: {siteSettings.whatsapp}
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-                <a href={`mailto:${PUSKESMAS_INFO.email}`} className="hover:text-emerald-400 truncate">
-                  {PUSKESMAS_INFO.email}
+                <a href={`mailto:${siteSettings.email}`} className="hover:text-emerald-400 truncate">
+                  {siteSettings.email}
                 </a>
               </div>
               <div className="flex items-center gap-2">
                 <Instagram className="w-4 h-4 text-emerald-400 shrink-0" />
                 <a
-                  href={PUSKESMAS_INFO.instagramUrl}
+                  href={siteSettings.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-emerald-400"
                 >
-                  {PUSKESMAS_INFO.instagram}
+                  {siteSettings.instagram}
                 </a>
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-2">
               <div className="p-2.5 bg-rose-950/40 border border-rose-900/60 rounded-xl text-[11px] text-rose-200 flex items-center gap-2">
                 <HeartPulse className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>UGD & Bersalin Buka 24 Jam Non-Stop</span>
               </div>
+
+              <button
+                onClick={() => onSelectView('admin')}
+                className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-bold flex items-center justify-center gap-2 transition border border-slate-700 hover:border-teal-500"
+              >
+                <Settings className="w-3.5 h-3.5 text-teal-400" />
+                <span>Portal Pengelola Tampilan (Admin CMS)</span>
+              </button>
             </div>
           </div>
 
@@ -206,7 +223,7 @@ export default function Footer({ onSelectTab, onSelectView }: FooterProps) {
         {/* Bottom copyright */}
         <div className="pt-8 border-t border-slate-800 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            &copy; {new Date().getFullYear()} UPTD Puskesmas Kepanjen, Dinas Kesehatan Kabupaten Malang. Hak Cipta Dilindungi.
+            &copy; {new Date().getFullYear()} {siteSettings.name}, Dinas Kesehatan {siteSettings.regency}. Hak Cipta Dilindungi.
           </div>
           <div className="text-[11px] text-slate-400 font-medium">
             SIPANDU PEDULI — <em>One Link, One Click Access</em>

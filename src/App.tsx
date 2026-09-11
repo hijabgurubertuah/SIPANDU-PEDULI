@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import PublicArea from './components/PublicArea';
 import PortalPegawai from './components/PortalPegawai';
+import AdminPortal from './components/AdminPortal';
 import Footer from './components/Footer';
 import DocumentModal from './components/DocumentModal';
 import AddDocumentModal from './components/AddDocumentModal';
@@ -11,7 +12,14 @@ import {
   DocumentItem,
   IndicatorMetric,
   ActivityLogItem,
-  ComplaintItem
+  ComplaintItem,
+  SiteSettings,
+  MarqueeSettings,
+  HealthPostMitra,
+  DriveFileItem,
+  ServiceItem,
+  DigitalSystemItem,
+  NewsAnnouncement
 } from './types';
 import {
   MOCK_USERS,
@@ -22,7 +30,10 @@ import {
   MOCK_ACTIVITY_LOGS,
   MOCK_COMPLAINTS,
   MOCK_MITRA,
-  MOCK_NEWS
+  MOCK_NEWS,
+  DEFAULT_SITE_SETTINGS,
+  DEFAULT_MARQUEE_SETTINGS,
+  MOCK_DRIVE_GALLERY
 } from './data/mockData';
 
 export default function App() {
@@ -43,8 +54,8 @@ export default function App() {
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
-  // View state: 'public' or 'pegawai'
-  const [currentView, setCurrentView] = useState<'public' | 'pegawai'>('public');
+  // View state: 'public', 'pegawai', or 'admin'
+  const [currentView, setCurrentView] = useState<'public' | 'pegawai' | 'admin'>('public');
 
   // Navigation tab for Public area
   const [activePublicTab, setActivePublicTab] = useState<string>('beranda');
@@ -55,7 +66,108 @@ export default function App() {
   // Active User for RBAC simulation
   const [currentUser, setCurrentUser] = useState<UserAccount>(MOCK_USERS[0]); // Default Super Admin
 
-  // Data states with persistence
+  // CMS States with LocalStorage Persistence
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_site_settings');
+      return saved ? { ...DEFAULT_SITE_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SITE_SETTINGS;
+    } catch {
+      return DEFAULT_SITE_SETTINGS;
+    }
+  });
+
+  const [marqueeSettings, setMarqueeSettings] = useState<MarqueeSettings>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_marquee_settings');
+      return saved ? { ...DEFAULT_MARQUEE_SETTINGS, ...JSON.parse(saved) } : DEFAULT_MARQUEE_SETTINGS;
+    } catch {
+      return DEFAULT_MARQUEE_SETTINGS;
+    }
+  });
+
+  const [mitraList, setMitraList] = useState<HealthPostMitra[]>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_mitra_list');
+      return saved ? JSON.parse(saved) : MOCK_MITRA;
+    } catch {
+      return MOCK_MITRA;
+    }
+  });
+
+  const [driveGallery, setDriveGallery] = useState<DriveFileItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_drive_gallery');
+      return saved ? JSON.parse(saved) : MOCK_DRIVE_GALLERY;
+    } catch {
+      return MOCK_DRIVE_GALLERY;
+    }
+  });
+
+  const [services, setServices] = useState<ServiceItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_services');
+      return saved ? JSON.parse(saved) : MOCK_SERVICES;
+    } catch {
+      return MOCK_SERVICES;
+    }
+  });
+
+  const [systems, setSystems] = useState<DigitalSystemItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_systems');
+      return saved ? JSON.parse(saved) : MOCK_DIGITAL_SYSTEMS;
+    } catch {
+      return MOCK_DIGITAL_SYSTEMS;
+    }
+  });
+
+  const [newsList, setNewsList] = useState<NewsAnnouncement[]>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_news');
+      return saved ? JSON.parse(saved) : MOCK_NEWS;
+    } catch {
+      return MOCK_NEWS;
+    }
+  });
+
+  const [adminPassword, setAdminPassword] = useState<string>(() => {
+    return localStorage.getItem('sipandu_admin_pwd') || 'sipandu123';
+  });
+
+  // Sync CMS state changes to localStorage
+  useEffect(() => {
+    localStorage.setItem('sipandu_site_settings', JSON.stringify(siteSettings));
+  }, [siteSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_marquee_settings', JSON.stringify(marqueeSettings));
+  }, [marqueeSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_mitra_list', JSON.stringify(mitraList));
+  }, [mitraList]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_drive_gallery', JSON.stringify(driveGallery));
+  }, [driveGallery]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_services', JSON.stringify(services));
+  }, [services]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_systems', JSON.stringify(systems));
+  }, [systems]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_news', JSON.stringify(newsList));
+  }, [newsList]);
+
+  useEffect(() => {
+    localStorage.setItem('sipandu_admin_pwd', adminPassword);
+  }, [adminPassword]);
+
+  // Operational Data states with persistence
   const [documents, setDocuments] = useState<DocumentItem[]>(MOCK_DOCUMENTS);
   const [indicators, setIndicators] = useState<IndicatorMetric[]>(MOCK_INDICATORS);
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(MOCK_ACTIVITY_LOGS);
@@ -183,6 +295,8 @@ export default function App() {
           setActivePegawaiTab(t);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        siteSettings={siteSettings}
+        marqueeSettings={marqueeSettings}
       />
 
       {/* Main Content Area */}
@@ -194,12 +308,12 @@ export default function App() {
               setActivePublicTab(tab);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            services={MOCK_SERVICES}
-            systems={MOCK_DIGITAL_SYSTEMS}
+            services={services}
+            systems={systems}
             indicators={indicators}
             documents={documents}
-            mitraList={MOCK_MITRA}
-            newsList={MOCK_NEWS}
+            mitraList={mitraList}
+            newsList={newsList}
             complaints={complaints}
             onSubmitComplaint={handleSubmitComplaint}
             onSelectDocument={setSelectedDocModal}
@@ -207,8 +321,9 @@ export default function App() {
               setCurrentView('pegawai');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
+            siteSettings={siteSettings}
           />
-        ) : (
+        ) : currentView === 'pegawai' ? (
           <PortalPegawai
             currentUser={currentUser}
             documents={documents}
@@ -219,6 +334,29 @@ export default function App() {
             onSelectDocument={setSelectedDocModal}
             onVerifyDocument={handleVerifyDocument}
             onVerifyIndicator={handleVerifyIndicator}
+          />
+        ) : (
+          <AdminPortal
+            siteSettings={siteSettings}
+            onUpdateSiteSettings={setSiteSettings}
+            marqueeSettings={marqueeSettings}
+            onUpdateMarqueeSettings={setMarqueeSettings}
+            mitraList={mitraList}
+            onUpdateMitraList={setMitraList}
+            driveGallery={driveGallery}
+            onUpdateDriveGallery={setDriveGallery}
+            services={services}
+            onUpdateServices={setServices}
+            systems={systems}
+            onUpdateSystems={setSystems}
+            newsList={newsList}
+            onUpdateNewsList={setNewsList}
+            adminPassword={adminPassword}
+            onUpdateAdminPassword={setAdminPassword}
+            onExitAdmin={() => {
+              setCurrentView('public');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         )}
       </main>
@@ -233,6 +371,7 @@ export default function App() {
           setCurrentView(v);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        siteSettings={siteSettings}
       />
 
       {/* Document Gateway Detail Modal */}
@@ -261,8 +400,8 @@ export default function App() {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         documents={documents}
-        services={MOCK_SERVICES}
-        systems={MOCK_DIGITAL_SYSTEMS}
+        services={services}
+        systems={systems}
         onSelectDocument={setSelectedDocModal}
       />
 

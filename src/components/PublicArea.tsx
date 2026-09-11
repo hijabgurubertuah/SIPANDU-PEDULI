@@ -32,7 +32,8 @@ import {
   DocumentItem,
   HealthPostMitra,
   NewsAnnouncement,
-  ComplaintItem
+  ComplaintItem,
+  SiteSettings
 } from '../types';
 import { PUSKESMAS_INFO, VILLAGES_KEPANJEN } from '../data/mockData';
 
@@ -49,6 +50,7 @@ interface PublicAreaProps {
   onSubmitComplaint: (newComplaint: ComplaintItem) => void;
   onSelectDocument: (doc: DocumentItem) => void;
   onOpenPegawaiPortal: () => void;
+  siteSettings?: SiteSettings;
 }
 
 export default function PublicArea({
@@ -63,7 +65,8 @@ export default function PublicArea({
   complaints,
   onSubmitComplaint,
   onSelectDocument,
-  onOpenPegawaiPortal
+  onOpenPegawaiPortal,
+  siteSettings
 }: PublicAreaProps) {
   // Service filter state
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(services[0]);
@@ -155,16 +158,26 @@ export default function PublicArea({
                 <div className="lg:col-span-7 space-y-6">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-semibold backdrop-blur-xs">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Portal Resmi UPTD Puskesmas Kepanjen</span>
+                    <span>{siteSettings?.headerBadgeText || `Portal Resmi ${siteSettings?.name || 'UPTD Puskesmas Kepanjen'}`}</span>
                   </div>
 
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-                    Satu Akses Terpadu <br />
-                    <span className="text-emerald-300">Layanan Kesehatan Kepanjen</span>
+                    {siteSettings?.heroTitle ? (
+                      siteSettings.heroTitle
+                    ) : (
+                      <>
+                        Satu Akses Terpadu <br />
+                        <span className="text-emerald-300">Layanan Kesehatan Kepanjen</span>
+                      </>
+                    )}
                   </h1>
 
                   <p className="text-sm sm:text-base text-emerald-100/90 max-w-2xl leading-relaxed">
-                    <strong>SIPANDU PEDULI</strong> (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi untuk Layanan Integratif) menghadirkan transparansi pelayanan, sistem digital, dan monitoring kesehatan dengan prinsip <em>One Link, One Click Access</em>.
+                    {siteSettings?.heroSubtitle || (
+                      <>
+                        <strong>SIPANDU PEDULI</strong> (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi untuk Layanan Integratif) menghadirkan transparansi pelayanan, sistem digital, dan monitoring kesehatan dengan prinsip <em>One Link, One Click Access</em>.
+                      </>
+                    )}
                   </p>
 
                   {/* Hero Quick Action Buttons */}

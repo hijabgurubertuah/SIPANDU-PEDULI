@@ -127,3 +127,49 @@ export interface NewsAnnouncement {
   author: string;
   isImportant?: boolean;
 }
+
+export interface SiteSettings {
+  name: string;
+  tagline: string;
+  subtitle: string;
+  code: string;
+  regency: string;
+  address: string;
+  phone: string;
+  whatsapp: string;
+  whatsappUrl: string;
+  email: string;
+  instagram: string;
+  instagramUrl: string;
+  operationalHours: string;
+  vision: string;
+  mission: string[];
+  motto: string;
+  maklumat: string;
+  logoUrl: string;
+  headerBadgeText: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+}
+
+export interface MarqueeSettings {
+  enabled: boolean;
+  text: string;
+  secondaryText?: string;
+  speed: 'slow' | 'medium' | 'fast';
+  variant: 'emerald' | 'amber' | 'blue' | 'rose' | 'dark';
+  hotline: string;
+  badge: string;
+}
+
+export interface DriveFileItem {
+  id: string;
+  name: string;
+  driveUrl: string;
+  thumbnailUrl: string;
+  mimeType: string;
+  size: string;
+  category: 'logo' | 'banner' | 'dokumentasi' | 'berkas' | 'lainnya';
+  uploadedAt: string;
+  isCurrentLogo?: boolean;
+}

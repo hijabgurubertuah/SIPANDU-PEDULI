@@ -777,3 +777,106 @@ export const VILLAGES_KEPANJEN = [
   'Sukoraharjo',
   'Tegalsari'
 ];
+
+export const DEFAULT_SITE_SETTINGS: import('../types').SiteSettings = {
+  name: 'UPTD Puskesmas Kepanjen',
+  tagline: 'SIPANDU PEDULI — One Link, One Click Access',
+  subtitle: 'Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi untuk Layanan Integratif',
+  code: 'P3507080201',
+  regency: 'Kabupaten Malang',
+  address: 'Jl. Raya Jatirejoyoso No. 4, Kec. Kepanjen, Kab. Malang, Jawa Timur 65163',
+  phone: '08889924444',
+  whatsapp: '08889924444',
+  whatsappUrl: 'https://wa.me/628889924444',
+  email: 'puskesmaskepanjen@malangkab.go.id',
+  instagram: '@pkm.kepanjen',
+  instagramUrl: 'https://instagram.com/pkm.kepanjen',
+  operationalHours: 'Senin – Kamis: 07.30 – 14.00 WIB | Jumat: 07.30 – 11.00 WIB | Sabtu: 07.30 – 12.30 WIB (UGD & Bersalin 24 Jam)',
+  vision: 'Terwujudnya Masyarakat Kecamatan Kepanjen yang Sehat, Mandiri, dan Berdaya Saing Menuju Kabupaten Malang Makmur',
+  mission: [
+    'Meningkatkan mutu pelayanan kesehatan yang merata, terjangkau, dan paripurna berbasis integrasi layanan primer (ILP).',
+    'Mendorong kemandirian masyarakat untuk hidup sehat melalui pemberdayaan dan promosi kesehatan aktif.',
+    'Memperkuat pencegahan, pengendalian penyakit menular dan penyakit tidak menular serta penyehatan lingkungan.',
+    'Mengembangkan tata kelola Puskesmas yang transparan, akuntabel, dan berbasis teknologi digital (Good Governance).'
+  ],
+  motto: 'Kepanjen PEDULI (Profesional, Empati, Disiplin, Unggul, Loyal, Inovatif)',
+  maklumat: 'Dengan ini kami menyatakan sanggup menyelenggarakan pelayanan sesuai standar pelayanan yang telah ditetapkan dan apabila tidak menepati janji ini, kami siap menerima sanksi sesuai peraturan perundang-undangan yang berlaku.',
+  logoUrl: '',
+  headerBadgeText: 'UPTD Puskesmas Kepanjen — Pelayanan Terintegrasi Layanan Primer (ILP)',
+  heroTitle: 'Satu Akses Terpadu Layanan Kesehatan Kepanjen',
+  heroSubtitle: 'SIPANDU PEDULI (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi untuk Layanan Integratif) menghadirkan transparansi pelayanan, sistem digital, dan monitoring kesehatan dengan prinsip One Link, One Click Access.'
+};
+
+export const DEFAULT_MARQUEE_SETTINGS: import('../types').MarqueeSettings = {
+  enabled: true,
+  text: 'Selamat Datang di Portal SIPANDU PEDULI UPTD Puskesmas Kepanjen • Pelayanan Poli Rawat Jalan Buka Pukul 07.30 WIB • Layanan UGD & Persalinan Siaga 24 Jam Non-Stop • Antrean Online Tersedia di Aplikasi Mobile JKN BPJS • Cek Kesehatan Gratis (CKG) Hadir di Seluruh Posyandu Desa',
+  secondaryText: 'Puskesmas Kepanjen Terakreditasi Paripurna Kemenkes RI',
+  speed: 'medium',
+  variant: 'emerald',
+  hotline: '08889924444',
+  badge: 'PENGUMUMAN RESMI'
+};
+
+export const MOCK_DRIVE_GALLERY: import('../types').DriveFileItem[] = [
+  {
+    id: 'drive-logo-1',
+    name: 'Logo-Resmi-Puskesmas-Kepanjen-2026.png',
+    driveUrl: 'https://drive.google.com/file/d/1A2B3C4D5E6F7G8H9-LogoPuskesmas/view',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&auto=format&fit=crop&q=80',
+    mimeType: 'image/png',
+    size: '142 KB',
+    category: 'logo',
+    uploadedAt: '10 September 2026, 08:30 WIB',
+    isCurrentLogo: false
+  },
+  {
+    id: 'drive-banner-1',
+    name: 'Banner-Gedung-Puskesmas-Kepanjen.jpg',
+    driveUrl: 'https://drive.google.com/file/d/1B2C3D4E5F6G7H8I9-BannerGedung/view',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80',
+    mimeType: 'image/jpeg',
+    size: '840 KB',
+    category: 'banner',
+    uploadedAt: '08 September 2026, 14:15 WIB'
+  },
+  {
+    id: 'drive-img-ckg',
+    name: 'Dokumentasi-CKG-Desa-Jatirejoyoso.jpg',
+    driveUrl: 'https://drive.google.com/file/d/1C2D3E4F5G6H7I8J9-DokumenCKG/view',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80',
+    mimeType: 'image/jpeg',
+    size: '620 KB',
+    category: 'dokumentasi',
+    uploadedAt: '05 September 2026, 10:00 WIB'
+  },
+  {
+    id: 'drive-img-ugd',
+    name: 'Kesiapsiagaan-UGD-24-Jam.jpg',
+    driveUrl: 'https://drive.google.com/file/d/1D2E3F4G5H6I7J8K9-UGD24Jam/view',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=600&auto=format&fit=crop&q=80',
+    mimeType: 'image/jpeg',
+    size: '710 KB',
+    category: 'dokumentasi',
+    uploadedAt: '01 September 2026, 21:00 WIB'
+  },
+  {
+    id: 'drive-img-posyandu',
+    name: 'Pemeriksaan-Balita-Posyandu-Sukoraharjo.jpg',
+    driveUrl: 'https://drive.google.com/file/d/1E2F3G4H5I6J7K8L9-Posyandu/view',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=600&auto=format&fit=crop&q=80',
+    mimeType: 'image/jpeg',
+    size: '530 KB',
+    category: 'dokumentasi',
+    uploadedAt: '28 Agustus 2026, 09:40 WIB'
+  },
+  {
+    id: 'drive-cert-akreditasi',
+    name: 'Sertifikat-Akreditasi-Paripurna-Kemenkes.png',
+    driveUrl: 'https://drive.google.com/file/d/1F2G3H4I5J6K7L8M9-Akreditasi/view',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80',
+    mimeType: 'image/png',
+    size: '380 KB',
+    category: 'berkas',
+    uploadedAt: '15 Agustus 2026, 11:20 WIB'
+  }
+];
