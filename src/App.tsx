@@ -384,6 +384,7 @@ export default function App() {
         ) : currentView === 'pegawai' ? (
           <PortalPegawai
             currentUser={currentUser}
+            onSelectUser={setCurrentUser}
             documents={documents}
             indicators={indicators}
             activityLogs={activityLogs}

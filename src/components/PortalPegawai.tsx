@@ -37,6 +37,7 @@ import { MOCK_USERS } from '../data/mockData';
 
 interface PortalPegawaiProps {
   currentUser: UserAccount;
+  onSelectUser: (user: UserAccount) => void;
   documents: DocumentItem[];
   indicators: IndicatorMetric[];
   activityLogs: ActivityLogItem[];
@@ -49,6 +50,7 @@ interface PortalPegawaiProps {
 
 export default function PortalPegawai({
   currentUser,
+  onSelectUser,
   documents,
   indicators,
   activityLogs,
@@ -58,6 +60,7 @@ export default function PortalPegawai({
   onVerifyDocument,
   onVerifyIndicator
 }: PortalPegawaiProps) {
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   // Navigation inside Portal Pegawai
   const [activeMenu, setActiveMenu] = useState<
     'dashboard' | 'tu' | 'klaster' | 'sasaran' | 'perencanaan' | 'prioritas' | 'monev' | 'akreditasi' | 'admin'
@@ -138,12 +141,22 @@ export default function PortalPegawai({
           </div>
         </div>
 
-        {/* Action button */}
-        <div className="flex items-center gap-2">
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Simulasi Hak Akses Button */}
+          <button
+            onClick={() => setIsRoleModalOpen(true)}
+            className="px-3.5 py-2 bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+            title="Klik untuk Simulasi Hak Akses & Role Pengguna"
+          >
+            <UserCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span>Simulasi Hak Akses ({currentUser.roleLabel})</span>
+          </button>
+
           {canAdd && (
             <button
               onClick={onOpenAddDocument}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Tautkan Dokumen / Data Dukung</span>
@@ -151,6 +164,77 @@ export default function PortalPegawai({
           )}
         </div>
       </div>
+
+      {/* Modal Simulasi Hak Akses (Mobile-Responsive & Sticky Header) */}
+      {isRoleModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+            {/* Sticky Header with Close Button Always Visible */}
+            <div className="sticky top-0 z-10 shrink-0 border-b border-slate-100 dark:border-slate-800 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                    Simulasi Hak Akses & Akun Pegawai
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Pilih salah satu profil di bawah ini untuk menguji hak akses:
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsRoleModalOpen(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0 transition cursor-pointer"
+                aria-label="Tutup Modal Simulasi Hak Akses"
+              >
+                <span className="text-base font-bold">✕</span>
+              </button>
+            </div>
+
+            {/* Scrollable Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {MOCK_USERS.map((user) => {
+                const isCurrent = currentUser.id === user.id;
+                return (
+                  <button
+                    key={user.id}
+                    onClick={() => {
+                      onSelectUser(user);
+                      setIsRoleModalOpen(false);
+                    }}
+                    className={`w-full text-left p-3.5 rounded-xl border text-xs transition flex items-center justify-between gap-3 cursor-pointer ${
+                      isCurrent
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                        : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white'
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-sm leading-snug">{user.name}</div>
+                      <div className={isCurrent ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}>
+                        <strong>{user.roleLabel}</strong> • {user.unitName}
+                      </div>
+                      <div className={`text-[10px] font-mono ${isCurrent ? 'text-emerald-200' : 'text-slate-400'}`}>
+                        NIP: {user.nip}
+                      </div>
+                    </div>
+                    {isCurrent ? (
+                      <span className="px-2.5 py-1 rounded-full bg-white text-emerald-900 font-extrabold text-[10px] shrink-0">
+                        Aktif Sekarang
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold shrink-0">
+                        Pilih Profil
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Navigation Sub-Bar */}
       <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto">

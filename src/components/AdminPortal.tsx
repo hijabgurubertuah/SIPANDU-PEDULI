@@ -2862,133 +2862,138 @@ function doGet(e) {
       {/* MODAL EDIT / ADD MITRA                                   */}
       {/* ======================================================== */}
       {isMitraModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95">
+            {/* Sticky Header with Close Button Always Visible */}
+            <div className="sticky top-0 z-10 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 gap-3">
               <h3 className="text-sm font-black text-slate-900 dark:text-white">
                 {editingMitraId ? 'Ubah Data Mitra Faskes' : 'Tambah Mitra Pelayanan Baru'}
               </h3>
               <button
+                type="button"
                 onClick={() => setIsMitraModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0 transition cursor-pointer"
+                aria-label="Tutup"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveMitra} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Nama Fasilitas / Posyandu:
-                </label>
-                <input
-                  type="text"
-                  value={mitraForm.name}
-                  onChange={(e) => setMitraForm({ ...mitraForm, name: e.target.value })}
-                  placeholder="Contoh: Pustu Curungrejo atau Posyandu Melati"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSaveMitra} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Tipe Faskes:
-                  </label>
-                  <select
-                    value={mitraForm.type}
-                    onChange={(e) => setMitraForm({ ...mitraForm, type: e.target.value as any })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
-                  >
-                    <option value="Pustu">Pustu (Puskesmas Pembantu)</option>
-                    <option value="Posyandu">Posyandu ILP Siklus Hidup</option>
-                    <option value="UPKDK">UPKDK (Unit Pengelola Desa)</option>
-                    <option value="Klinik">Klinik Pratama Swasta</option>
-                    <option value="TPMD">TPMD (Dokter / Bidan Mandiri)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Desa / Kelurahan:
-                  </label>
-                  <select
-                    value={mitraForm.village}
-                    onChange={(e) => setMitraForm({ ...mitraForm, village: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
-                  >
-                    {VILLAGES_KEPANJEN.map((v) => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Alamat Lengkap:
-                </label>
-                <input
-                  type="text"
-                  value={mitraForm.address}
-                  onChange={(e) => setMitraForm({ ...mitraForm, address: e.target.value })}
-                  placeholder="Jl. Raya ..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Nama Penanggung Jawab (PIC):
+                    Nama Fasilitas / Posyandu:
                   </label>
                   <input
                     type="text"
-                    value={mitraForm.pic}
-                    onChange={(e) => setMitraForm({ ...mitraForm, pic: e.target.value })}
-                    placeholder="Bdn. Siti ..."
+                    value={mitraForm.name}
+                    onChange={(e) => setMitraForm({ ...mitraForm, name: e.target.value })}
+                    placeholder="Contoh: Pustu Curungrejo atau Posyandu Melati"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Tipe Faskes:
+                    </label>
+                    <select
+                      value={mitraForm.type}
+                      onChange={(e) => setMitraForm({ ...mitraForm, type: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    >
+                      <option value="Pustu">Pustu (Puskesmas Pembantu)</option>
+                      <option value="Posyandu">Posyandu ILP Siklus Hidup</option>
+                      <option value="UPKDK">UPKDK (Unit Pengelola Desa)</option>
+                      <option value="Klinik">Klinik Pratama Swasta</option>
+                      <option value="TPMD">TPMD (Dokter / Bidan Mandiri)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Desa / Kelurahan:
+                    </label>
+                    <select
+                      value={mitraForm.village}
+                      onChange={(e) => setMitraForm({ ...mitraForm, village: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    >
+                      {VILLAGES_KEPANJEN.map((v) => (
+                        <option key={v} value={v}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Alamat Lengkap:
+                  </label>
+                  <input
+                    type="text"
+                    value={mitraForm.address}
+                    onChange={(e) => setMitraForm({ ...mitraForm, address: e.target.value })}
+                    placeholder="Jl. Raya ..."
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Nama Penanggung Jawab (PIC):
+                    </label>
+                    <input
+                      type="text"
+                      value={mitraForm.pic}
+                      onChange={(e) => setMitraForm({ ...mitraForm, pic: e.target.value })}
+                      placeholder="Bdn. Siti ..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Nomor Telepon / WhatsApp:
+                    </label>
+                    <input
+                      type="text"
+                      value={mitraForm.phone}
+                      onChange={(e) => setMitraForm({ ...mitraForm, phone: e.target.value })}
+                      placeholder="08123456789"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Nomor Telepon / WhatsApp:
+                    Jam Operasional:
                   </label>
                   <input
                     type="text"
-                    value={mitraForm.phone}
-                    onChange={(e) => setMitraForm({ ...mitraForm, phone: e.target.value })}
-                    placeholder="08123456789"
+                    value={mitraForm.operationalHours}
+                    onChange={(e) => setMitraForm({ ...mitraForm, operationalHours: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Jam Operasional:
-                </label>
-                <input
-                  type="text"
-                  value={mitraForm.operationalHours}
-                  onChange={(e) => setMitraForm({ ...mitraForm, operationalHours: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
-                />
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2">
+              <div className="sticky bottom-0 z-10 shrink-0 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-xs p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsMitraModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs cursor-pointer"
                 >
                   Simpan Mitra
                 </button>

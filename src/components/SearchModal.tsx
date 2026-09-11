@@ -58,31 +58,32 @@ export default function SearchModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center sm:items-start justify-center p-3 sm:p-4 pt-4 sm:pt-16 bg-slate-900/80 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden my-auto sm:my-0 animate-in fade-in zoom-in-95 duration-150">
         
-        {/* Search Input Bar */}
-        <div className="relative border-b border-slate-100 dark:border-slate-800 p-4 flex items-center gap-3">
+        {/* Sticky Search Input Bar */}
+        <div className="sticky top-0 z-10 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-slate-100 dark:border-slate-800 p-3.5 sm:p-4 flex items-center gap-2.5">
           <Search className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ketik kata kunci (contoh: CKG, PKP, Poli KIA, BPJS, Dokumen 2026)..."
-            className="w-full bg-transparent border-none outline-hidden text-sm text-slate-900 dark:text-white placeholder-slate-400"
+            placeholder="Ketik kata kunci (contoh: CKG, PKP, Poli KIA, BPJS)..."
+            className="w-full bg-transparent border-none outline-hidden text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1"
+              className="text-xs font-semibold text-slate-400 hover:text-slate-600 px-1.5 py-1 shrink-0"
             >
               Clear
             </button>
           )}
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0 transition cursor-pointer"
+            aria-label="Tutup Pencarian"
           >
             <X className="w-5 h-5" />
           </button>
@@ -134,7 +135,7 @@ export default function SearchModal({
         </div>
 
         {/* Results List */}
-        <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           
           {/* Documents Section */}
           {(filterType === 'all' || filterType === 'doc') && filteredResults.docs.length > 0 && (

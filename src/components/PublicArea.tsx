@@ -156,11 +156,6 @@ export default function PublicArea({
               <div className="grid lg:grid-cols-12 gap-8 items-center">
                 
                 <div className="lg:col-span-7 space-y-5">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-semibold backdrop-blur-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Portal Ekosistem Informasi Kesehatan Puskesmas Kepanjen</span>
-                  </div>
-
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
                     {siteSettings?.heroTitle ? (
                       siteSettings.heroTitle
