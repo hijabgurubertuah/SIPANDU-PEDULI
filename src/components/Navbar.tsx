@@ -124,7 +124,7 @@ export default function Navbar({
         <div className="bg-emerald-700 dark:bg-emerald-950 text-white text-[11px] py-1 px-4 text-center font-medium flex items-center justify-between">
           <div className="hidden sm:flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-            <span>{siteSettings.headerBadgeText || `${siteSettings.name} — Pelayanan Terintegrasi Layanan Primer (ILP)`}</span>
+            <span>{siteSettings.headerBadgeText || `${siteSettings.name} — Portal Ekosistem Informasi Kesehatan`}</span>
           </div>
           <div className="mx-auto sm:mx-0 flex items-center gap-4 text-[11px]">
             <span>Hotline UGD 24 Jam: <strong>{marqueeSettings.hotline || siteSettings.phone}</strong></span>

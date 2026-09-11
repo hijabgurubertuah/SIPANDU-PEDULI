@@ -213,6 +213,30 @@ export const MOCK_SERVICES: ServiceItem[] = [
 
 export const MOCK_DIGITAL_SYSTEMS: DigitalSystemItem[] = [
   {
+    id: 'sys-epuskesmas',
+    name: 'RME / e-Puskesmas Malang',
+    category: 'pemerintah',
+    categoryLabel: 'Sistem Rekam Medis Elektronik (RME)',
+    description: 'Sistem Rekam Medis Elektronik dan pelayanan medis klinis resmi Puskesmas Kepanjen (Source of Truth Medis).',
+    url: 'https://malang.epuskesmas.id/login',
+    iconName: 'Activity',
+    badge: 'Rekam Medis (RME)',
+    isExternal: true,
+    status: 'Online'
+  },
+  {
+    id: 'sys-pcare',
+    name: 'PCare JKN BPJS Kesehatan',
+    category: 'pemerintah',
+    categoryLabel: 'Sistem Pelayanan BPJS',
+    description: 'Aplikasi Primary Care BPJS Kesehatan untuk entri klaim, rujukan terintegrasi, dan verifikasi kepesertaan JKN.',
+    url: 'https://pcarejkn.bpjs-kesehatan.go.id/eclaim/login',
+    iconName: 'ShieldCheck',
+    badge: 'PCare BPJS',
+    isExternal: true,
+    status: 'Online'
+  },
+  {
     id: 'sys-1',
     name: 'SP4N LAPOR!',
     category: 'pemerintah',
@@ -761,21 +785,45 @@ export const MOCK_NEWS: NewsAnnouncement[] = [
 ];
 
 export const VILLAGES_KEPANJEN = [
-  'Ardirejo (Kelurahan)',
-  'Cepokomulyo (Kelurahan)',
-  'Kepanjen (Kelurahan)',
-  'Penarukan (Kelurahan)',
-  'Curungrejo',
-  'Dilem',
-  'Jatirejoyoso (Lokasi Induk Puskesmas)',
-  'Jenggolo',
-  'Kedungpedang',
-  'Mangunrejo',
-  'Ngadilangkung',
-  'Panggungrejo',
-  'Sengguruh',
-  'Sukoraharjo',
-  'Tegalsari'
+  'Kepanjen (Kelurahan) — 16 Posyandu',
+  'Cepokomulyo (Kelurahan) — 7 Posyandu',
+  'Penarukan (Kelurahan) — 5 Posyandu',
+  'Ardirejo (Kelurahan) — 7 Posyandu',
+  'Dilem — 5 Posyandu',
+  'Talangagung — 7 Posyandu',
+  'Ngadilangkung — 6 Posyandu',
+  'Mojosari — 4 Posyandu',
+  'Jatirejoyoso (Lokasi Induk) — 6 Posyandu',
+  'Curungrejo — 5 Posyandu',
+  'Sukoraharjo — 7 Posyandu',
+  'Kedungpedaringan — 3 Posyandu',
+  'Tegalsari — 3 Posyandu',
+  'Panggungrejo — 8 Posyandu',
+  'Mangunrejo — 6 Posyandu',
+  'Kemiri — 3 Posyandu',
+  'Jenggolo — 6 Posyandu',
+  'Sengguruh — 4 Posyandu'
+];
+
+export const POSYANDU_VILLAGE_SUMMARY = [
+  { village: 'Kepanjen (Kelurahan)', count: 16, posyandus: ['Posyandu Melati 1', 'Posyandu Melati 2', 'Posyandu Melati 3', 'Posyandu Melati 4', 'Posyandu Melati 5', 'Posyandu Melati 6', 'Posyandu Melati 7', 'Posyandu Melati 8', 'Posyandu Melati 9', 'Posyandu Melati 10', 'Posyandu Melati 11', 'Posyandu Melati 12', 'Posyandu Melati 13', 'Posyandu Melati 14', 'Posyandu Melati 15', 'Posyandu Melati 16 (ILP)'] },
+  { village: 'Cepokomulyo (Kelurahan)', count: 7, posyandus: ['Posyandu Mawar 1', 'Posyandu Mawar 2', 'Posyandu Mawar 3', 'Posyandu Mawar 4', 'Posyandu Mawar 5', 'Posyandu Mawar 6', 'Posyandu Mawar 7 (ILP)'] },
+  { village: 'Penarukan (Kelurahan)', count: 5, posyandus: ['Posyandu Anggrek 1', 'Posyandu Anggrek 2', 'Posyandu Anggrek 3', 'Posyandu Anggrek 4', 'Posyandu Anggrek 5 (ILP)'] },
+  { village: 'Ardirejo (Kelurahan)', count: 7, posyandus: ['Posyandu Teratai 1', 'Posyandu Teratai 2', 'Posyandu Teratai 3', 'Posyandu Teratai 4', 'Posyandu Teratai 5', 'Posyandu Teratai 6', 'Posyandu Teratai 7 (ILP)'] },
+  { village: 'Dilem', count: 5, posyandus: ['Posyandu Dahlia 1', 'Posyandu Dahlia 2', 'Posyandu Dahlia 3', 'Posyandu Dahlia 4', 'Posyandu Dahlia 5 (ILP)'] },
+  { village: 'Talangagung', count: 7, posyandus: ['Posyandu Kenanga 1', 'Posyandu Kenanga 2', 'Posyandu Kenanga 3', 'Posyandu Kenanga 4', 'Posyandu Kenanga 5', 'Posyandu Kenanga 6', 'Posyandu Kenanga 7 (ILP)'] },
+  { village: 'Ngadilangkung', count: 6, posyandus: ['Posyandu Flamboyan 1', 'Posyandu Flamboyan 2', 'Posyandu Flamboyan 3', 'Posyandu Flamboyan 4', 'Posyandu Flamboyan 5', 'Posyandu Flamboyan 6 (ILP)'] },
+  { village: 'Mojosari', count: 4, posyandus: ['Posyandu Nusa Indah 1', 'Posyandu Nusa Indah 2', 'Posyandu Nusa Indah 3', 'Posyandu Nusa Indah 4 (ILP)'] },
+  { village: 'Jatirejoyoso (Induk)', count: 6, posyandus: ['Posyandu Cempaka 1', 'Posyandu Cempaka 2', 'Posyandu Cempaka 3', 'Posyandu Cempaka 4', 'Posyandu Cempaka 5', 'Posyandu Cempaka 6 (ILP)'] },
+  { village: 'Curungrejo', count: 5, posyandus: ['Posyandu Bougenville 1', 'Posyandu Bougenville 2', 'Posyandu Bougenville 3', 'Posyandu Bougenville 4', 'Posyandu Bougenville 5 (ILP)'] },
+  { village: 'Sukoraharjo', count: 7, posyandus: ['Posyandu Kamboja 1', 'Posyandu Kamboja 2', 'Posyandu Kamboja 3', 'Posyandu Kamboja 4', 'Posyandu Kamboja 5', 'Posyandu Kamboja 6', 'Posyandu Kamboja 7 (ILP)'] },
+  { village: 'Kedungpedaringan', count: 3, posyandus: ['Posyandu Sedap Malam 1', 'Posyandu Sedap Malam 2', 'Posyandu Sedap Malam 3 (ILP)'] },
+  { village: 'Tegalsari', count: 3, posyandus: ['Posyandu Sakura 1', 'Posyandu Sakura 2', 'Posyandu Sakura 3 (ILP)'] },
+  { village: 'Panggungrejo', count: 8, posyandus: ['Posyandu Tulip 1', 'Posyandu Tulip 2', 'Posyandu Tulip 3', 'Posyandu Tulip 4', 'Posyandu Tulip 5', 'Posyandu Tulip 6', 'Posyandu Tulip 7', 'Posyandu Tulip 8 (ILP)'] },
+  { village: 'Mangunrejo', count: 6, posyandus: ['Posyandu Asoka 1', 'Posyandu Asoka 2', 'Posyandu Asoka 3', 'Posyandu Asoka 4', 'Posyandu Asoka 5', 'Posyandu Asoka 6 (ILP)'] },
+  { village: 'Kemiri', count: 3, posyandus: ['Posyandu Seroja 1', 'Posyandu Seroja 2', 'Posyandu Seroja 3 (ILP)'] },
+  { village: 'Jenggolo', count: 6, posyandus: ['Posyandu Lily 1', 'Posyandu Lily 2', 'Posyandu Lily 3', 'Posyandu Lily 4', 'Posyandu Lily 5', 'Posyandu Lily 6 (ILP)'] },
+  { village: 'Sengguruh', count: 4, posyandus: ['Posyandu Jasmine 1', 'Posyandu Jasmine 2', 'Posyandu Jasmine 3', 'Posyandu Jasmine 4 (ILP)'] }
 ];
 
 export const DEFAULT_SITE_SETTINGS: import('../types').SiteSettings = {
@@ -802,9 +850,9 @@ export const DEFAULT_SITE_SETTINGS: import('../types').SiteSettings = {
   motto: 'Kepanjen PEDULI (Profesional, Empati, Disiplin, Unggul, Loyal, Inovatif)',
   maklumat: 'Dengan ini kami menyatakan sanggup menyelenggarakan pelayanan sesuai standar pelayanan yang telah ditetapkan dan apabila tidak menepati janji ini, kami siap menerima sanksi sesuai peraturan perundang-undangan yang berlaku.',
   logoUrl: '',
-  headerBadgeText: 'UPTD Puskesmas Kepanjen — Pelayanan Terintegrasi Layanan Primer (ILP)',
+  headerBadgeText: 'Portal Ekosistem Informasi Kesehatan Puskesmas Kepanjen',
   heroTitle: 'Satu Akses Terpadu Layanan Kesehatan Kepanjen',
-  heroSubtitle: 'SIPANDU PEDULI (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi untuk Layanan Integratif) menghadirkan transparansi pelayanan, sistem digital, dan monitoring kesehatan dengan prinsip One Link, One Click Access.'
+  heroSubtitle: 'SIPANDU PEDULI (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi) sebagai Portal & Integration Hub yang menghubungkan masyarakat, Puskesmas, Pustu, 108 Posyandu, dan sistem sumber (RME & PCare BPJS) dengan prinsip One Link, One Click Access.'
 };
 
 export const DEFAULT_MARQUEE_SETTINGS: import('../types').MarqueeSettings = {

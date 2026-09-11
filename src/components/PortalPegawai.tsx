@@ -250,7 +250,7 @@ export default function PortalPegawai({
                 >
                   <TrendingUp className="w-5 h-5 text-blue-600 mb-1 group-hover:scale-110 transition" />
                   <div className="text-xs font-bold text-slate-900 dark:text-white">Dashboard CKG</div>
-                  <div className="text-[10px] text-slate-500">Cek Kesehatan Gratis 14 Desa</div>
+                  <div className="text-[10px] text-slate-500">Cek Kesehatan Gratis 18 Desa</div>
                 </button>
 
                 <button
@@ -592,7 +592,7 @@ export default function PortalPegawai({
               <div>
                 <strong>Master Sasaran Penduduk Tahun {selectedYear}:</strong>
                 <p className="text-[11px] text-emerald-800 dark:text-emerald-300 mt-0.5">
-                  Terintegrasi dengan SP2TP dan BPS Kabupaten Malang untuk 14 Desa/Kelurahan.
+                  Terintegrasi dengan SP2TP dan BPS Kabupaten Malang untuk 18 Desa/Kelurahan.
                 </p>
               </div>
               <button

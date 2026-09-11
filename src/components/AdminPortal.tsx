@@ -2353,7 +2353,7 @@ function doGet(e) {
                     <span>Daftar Mitra Jaringan & Jejaring Pelayanan</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Kelola Pustu (Puskesmas Pembantu), UPKDK, Posyandu, Klinik Pratama, dan TPMD di 14 Desa/Kelurahan
+                    Kelola Pustu (Puskesmas Pembantu), UPKDK, 108 Posyandu, Klinik Pratama, dan TPMD di 18 Desa/Kelurahan
                   </p>
                 </div>
 

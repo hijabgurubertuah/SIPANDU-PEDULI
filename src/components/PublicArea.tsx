@@ -35,7 +35,7 @@ import {
   ComplaintItem,
   SiteSettings
 } from '../types';
-import { PUSKESMAS_INFO, VILLAGES_KEPANJEN } from '../data/mockData';
+import { PUSKESMAS_INFO, VILLAGES_KEPANJEN, POSYANDU_VILLAGE_SUMMARY } from '../data/mockData';
 
 interface PublicAreaProps {
   activeTab: string;
@@ -150,15 +150,15 @@ export default function PublicArea({
       {activeTab === 'beranda' && (
         <div>
           {/* Hero Section */}
-          <section className="relative overflow-hidden bg-gradient-to-b from-emerald-900 via-emerald-800 to-teal-950 text-white py-16 sm:py-24 px-4 sm:px-6 lg:px-8">
+          <section className="relative overflow-hidden bg-gradient-to-b from-emerald-900 via-emerald-800 to-teal-950 text-white pt-6 sm:pt-8 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8">
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
             <div className="relative max-w-7xl mx-auto">
-              <div className="grid lg:grid-cols-12 gap-10 items-center">
+              <div className="grid lg:grid-cols-12 gap-8 items-center">
                 
-                <div className="lg:col-span-7 space-y-6">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-semibold backdrop-blur-xs">
+                <div className="lg:col-span-7 space-y-5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-semibold backdrop-blur-xs">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>{siteSettings?.headerBadgeText || `Portal Resmi ${siteSettings?.name || 'UPTD Puskesmas Kepanjen'}`}</span>
+                    <span>Portal Ekosistem Informasi Kesehatan Puskesmas Kepanjen</span>
                   </div>
 
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
@@ -210,8 +210,8 @@ export default function PublicArea({
                   {/* Trust Badges */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-emerald-700/60">
                     <div className="p-3 bg-emerald-800/40 rounded-xl border border-emerald-700/40">
-                      <div className="text-xl sm:text-2xl font-black text-emerald-300">14 Desa</div>
-                      <div className="text-[11px] text-emerald-100/70">Wilayah Kerja Binaan</div>
+                      <div className="text-xl sm:text-2xl font-black text-emerald-300">18 Desa</div>
+                      <div className="text-[11px] text-emerald-100/70">108 Posyandu Active Hub</div>
                     </div>
                     <div className="p-3 bg-emerald-800/40 rounded-xl border border-emerald-700/40">
                       <div className="text-xl sm:text-2xl font-black text-emerald-300">12 Layanan</div>
@@ -391,10 +391,10 @@ export default function PublicArea({
                     <span>Wilayah Kerja Puskesmas</span>
                   </div>
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                    Menjangkau 14 Desa & Kelurahan di Kecamatan Kepanjen
+                    Menjangkau 18 Desa & Kelurahan dengan 108 Posyandu Binaan
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    UPTD Puskesmas Kepanjen bertanggung jawab mengkoordinasikan program kesehatan masyarakat (UKM) dan layanan perseorangan (UKP) terintegrasi, dibantu oleh 3 Pustu, 1 UPKDK, dan puluhan Posyandu aktif.
+                    UPTD Puskesmas Kepanjen mengoordinasikan ekosistem pelayanan kesehatan terintegrasi di 18 Desa/Kelurahan yang ditopang oleh 108 Posyandu aktif, 3 Pustu, UPKDK, dan Mitra Kesehatan dengan SIPANDU PEDULI sebagai Portal & Integration Hub resmi.
                   </p>
 
                   <div className="pt-2">
@@ -1002,68 +1002,122 @@ export default function PublicArea({
         </div>
       )}
 
-      {/* Tab 6: MITRA PUSKESMAS */}
+      {/* Tab 6: MITRA PUSKESMAS & 108 POSYANDU */}
       {activeTab === 'mitra' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-2">
               <Building2 className="w-3.5 h-3.5" />
-              <span>Jaringan & Jejaring Faskes</span>
+              <span>Jaringan & Ekosistem 108 Posyandu</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-              Mitra Pelayanan Kesehatan Puskesmas Kepanjen
+              Mitra & Direktori 108 Posyandu se-Kepanjen
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Puskesmas Pembantu (Pustu), Unit Pelayanan Kesehatan Desa/Kelurahan (UPKDK), Posyandu, dan jejaring klinik/praktik mandiri se-Kepanjen.
+              SIPANDU PEDULI sebagai Integration Hub menghubungkan 3 Pustu, UPKDK, 108 Posyandu di 18 Desa/Kelurahan, serta jejaring klinik/TPMD tanpa menduplikasi rekam medis individu.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mitraList.map((m) => (
-              <div
-                key={m.id}
-                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-xs flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                      {m.type}
-                    </span>
-                    <span className="text-[11px] text-slate-400">{m.village}</span>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
-                    {m.name}
-                  </h3>
-                  <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span>{m.address}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{m.operationalHours}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <ShieldCheck className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
-                      <span>Penanggung Jawab: {m.pic}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-mono text-[11px]">{m.phone}</span>
-                  <a
-                    href={`https://wa.me/${m.phone.replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-600 font-bold hover:underline flex items-center gap-1"
-                  >
-                    <span>Hubungi</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </a>
-                </div>
+          {/* Section: Direktori Master 108 Posyandu di 18 Desa */}
+          <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Master Data Resmi
+                </span>
+                <h3 className="text-lg font-bold text-white mt-1">
+                  Direktori 108 Posyandu Terintegrasi (18 Desa / Kelurahan)
+                </h3>
               </div>
-            ))}
+              <div className="text-right">
+                <span className="text-2xl font-black text-emerald-400">108</span>
+                <span className="text-xs text-slate-400 block">Posyandu Aktif Binaan</span>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {POSYANDU_VILLAGE_SUMMARY.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/60 transition"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-emerald-300">{item.village}</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-black">
+                      {item.count} Posyandu
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {item.posyandus.slice(0, 4).map((pName, pIdx) => (
+                      <span
+                        key={pIdx}
+                        className="px-2 py-0.5 rounded bg-slate-900 text-[10px] font-medium text-slate-300 border border-slate-700"
+                      >
+                        {pName}
+                      </span>
+                    ))}
+                    {item.posyandus.length > 4 && (
+                      <span className="px-1.5 py-0.5 text-[10px] text-slate-400">
+                        +{item.posyandus.length - 4} lagi
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+              Pustu, UPKDK & Faskes Jejaring
+            </h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mitraList.map((m) => (
+                <div
+                  key={m.id}
+                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-xs flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        {m.type}
+                      </span>
+                      <span className="text-[11px] text-slate-400">{m.village}</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+                      {m.name}
+                    </h3>
+                    <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{m.address}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                        <span>{m.operationalHours}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                        <span>Penanggung Jawab: {m.pic}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-mono text-[11px]">{m.phone}</span>
+                    <a
+                      href={`https://wa.me/${m.phone.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-600 font-bold hover:underline flex items-center gap-1"
+                    >
+                      <span>Hubungi</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
