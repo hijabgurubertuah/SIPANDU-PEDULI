@@ -40,7 +40,8 @@ import {
   Activity,
   HeartPulse,
   MessageCircle,
-  LayoutGrid
+  LayoutGrid,
+  Info
 } from 'lucide-react';
 import {
   SiteSettings,
@@ -1997,6 +1998,7 @@ function doGet(e) {
                               {item.icon === 'phone' && <Phone className="w-4 h-4" />}
                               {item.icon === 'whatsapp' && <MessageCircle className="w-4 h-4 text-emerald-500" />}
                               {item.icon === 'emergency' && <Phone className="w-4 h-4 text-rose-500" />}
+                              {item.icon === 'info' && <Info className="w-4 h-4 text-sky-500" />}
                             </div>
 
                             <div>
@@ -2070,6 +2072,7 @@ function doGet(e) {
                               <option value="phone">Telepon UGD</option>
                               <option value="whatsapp">Chat WhatsApp</option>
                               <option value="emergency">Panggilan Emergency</option>
+                              <option value="info">Info Puskesmas</option>
                             </select>
                           </div>
 
@@ -2087,6 +2090,7 @@ function doGet(e) {
                               <option value="tab">Pindah Tab Publik</option>
                               <option value="url">Buka Link URL</option>
                               <option value="tel">Panggil Telepon</option>
+                              <option value="scroll">Scroll ke Footer (Info)</option>
                             </select>
                           </div>
 

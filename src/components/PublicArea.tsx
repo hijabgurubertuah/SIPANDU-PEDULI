@@ -664,7 +664,7 @@ export default function PublicArea({
       )}
 
       {/* Tab 3: INFORMASI & PUBLIK */}
-      {activeTab === 'informasi' && (
+      {(activeTab === 'informasi' || activeTab === 'berita') && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-2">

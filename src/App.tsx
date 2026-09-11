@@ -141,11 +141,26 @@ export default function App() {
     return localStorage.getItem('sipandu_admin_pwd') || 'sipandu123';
   });
 
+  // Helper to migrate legacy dock items (e.g. Chat WA -> Info, SIPANDU -> Berita)
+  const sanitizeDockConfig = (cfg: MobileDockConfig): MobileDockConfig => {
+    if (!cfg || !Array.isArray(cfg.items)) return DEFAULT_DOCK_CONFIG;
+    const items = cfg.items.map((item) => {
+      if (item.id === 'dock-berita' || item.id === 'dock-dokumen' || item.label === 'SIPANDU' || (item.label === 'Berita' && item.target === 'dokumen')) {
+        return { ...item, id: 'dock-berita', label: 'Berita', icon: 'document' as const, actionType: 'tab' as const, target: 'informasi' };
+      }
+      if (item.id === 'dock-wa' || item.label === 'Chat WA' || item.icon === 'whatsapp') {
+        return { ...item, id: 'dock-info', label: 'Info', icon: 'info' as const, actionType: 'scroll' as const, target: 'footer' };
+      }
+      return item;
+    });
+    return { ...DEFAULT_DOCK_CONFIG, ...cfg, items };
+  };
+
   // Mobile Docker Config state
   const [dockConfig, setDockConfig] = useState<MobileDockConfig>(() => {
     try {
       const saved = localStorage.getItem('sipandu_dock_config');
-      return saved ? { ...DEFAULT_DOCK_CONFIG, ...JSON.parse(saved) } : DEFAULT_DOCK_CONFIG;
+      return saved ? sanitizeDockConfig(JSON.parse(saved)) : DEFAULT_DOCK_CONFIG;
     } catch {
       return DEFAULT_DOCK_CONFIG;
     }
@@ -209,7 +224,7 @@ export default function App() {
       const data = await loadAllFromFirestore();
       if (data.siteSettings) setSiteSettings(data.siteSettings);
       if (data.marqueeSettings) setMarqueeSettings(data.marqueeSettings);
-      if (data.dockConfig) setDockConfig(data.dockConfig);
+      if (data.dockConfig) setDockConfig(sanitizeDockConfig(data.dockConfig));
       if (data.mitraList && data.mitraList.length > 0) setMitraList(data.mitraList);
       if (data.services && data.services.length > 0) setServices(data.services);
       if (data.systems && data.systems.length > 0) setSystems(data.systems);
@@ -452,6 +467,7 @@ export default function App() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onOpenSidebar={() => setPublicSidebarOpen(true)}
+          logoUrl={siteSettings.logoUrl}
         />
       )}
 

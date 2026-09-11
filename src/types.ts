@@ -177,8 +177,8 @@ export interface DriveFileItem {
 export interface MobileDockItem {
   id: string;
   label: string;
-  icon: 'menu' | 'home' | 'services' | 'document' | 'mitra' | 'complaint' | 'phone' | 'whatsapp' | 'emergency';
-  actionType: 'sidebar' | 'tab' | 'url' | 'tel';
+  icon: 'menu' | 'home' | 'services' | 'document' | 'mitra' | 'complaint' | 'phone' | 'whatsapp' | 'emergency' | 'info';
+  actionType: 'sidebar' | 'tab' | 'url' | 'tel' | 'scroll';
   target: string;
   isEnabled: boolean;
   isHighlight?: boolean;

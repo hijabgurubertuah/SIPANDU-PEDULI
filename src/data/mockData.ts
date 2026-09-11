@@ -944,12 +944,21 @@ export const DEFAULT_DOCK_CONFIG: import('../types').MobileDockConfig = {
       isHighlight: false
     },
     {
+      id: 'dock-berita',
+      label: 'Berita',
+      icon: 'document',
+      actionType: 'tab',
+      target: 'informasi',
+      isEnabled: true
+    },
+    {
       id: 'dock-beranda',
       label: 'Beranda',
       icon: 'home',
       actionType: 'tab',
       target: 'beranda',
-      isEnabled: true
+      isEnabled: true,
+      isHighlight: false
     },
     {
       id: 'dock-layanan',
@@ -960,30 +969,12 @@ export const DEFAULT_DOCK_CONFIG: import('../types').MobileDockConfig = {
       isEnabled: true
     },
     {
-      id: 'dock-dokumen',
-      label: 'SIPANDU',
-      icon: 'document',
-      actionType: 'tab',
-      target: 'dokumen',
+      id: 'dock-info',
+      label: 'Info',
+      icon: 'info',
+      actionType: 'scroll',
+      target: 'footer',
       isEnabled: true
-    },
-    {
-      id: 'dock-wa',
-      label: 'Chat WA',
-      icon: 'whatsapp',
-      actionType: 'url',
-      target: 'https://wa.me/628889924444',
-      isEnabled: true
-    },
-    {
-      id: 'dock-ugd',
-      label: 'UGD 24 Jam',
-      icon: 'emergency',
-      actionType: 'tel',
-      target: 'tel:08889924444',
-      isEnabled: true,
-      isHighlight: true,
-      badge: '24 Jam'
     }
   ]
 };
