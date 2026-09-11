@@ -32,6 +32,7 @@ interface NavbarProps {
   onSelectPegawaiTab: (tab: string) => void;
   siteSettings: SiteSettings;
   marqueeSettings: MarqueeSettings;
+  onOpenMobileSidebar?: () => void;
 }
 
 export default function Navbar({
@@ -47,7 +48,8 @@ export default function Navbar({
   activePegawaiTab,
   onSelectPegawaiTab,
   siteSettings,
-  marqueeSettings
+  marqueeSettings,
+  onOpenMobileSidebar
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
@@ -309,8 +311,14 @@ export default function Navbar({
 
             {/* Mobile Hamburger Button */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={() => {
+                if (currentView === 'public' && onOpenMobileSidebar) {
+                  onOpenMobileSidebar();
+                } else {
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }
+              }}
+              className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               aria-label="Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

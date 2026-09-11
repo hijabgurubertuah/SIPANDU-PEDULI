@@ -880,3 +880,62 @@ export const MOCK_DRIVE_GALLERY: import('../types').DriveFileItem[] = [
     uploadedAt: '15 Agustus 2026, 11:20 WIB'
   }
 ];
+
+export const DEFAULT_DOCK_CONFIG: import('../types').MobileDockConfig = {
+  enabled: true,
+  blurEffect: true,
+  showLabels: true,
+  items: [
+    {
+      id: 'dock-menu',
+      label: 'Menu',
+      icon: 'menu',
+      actionType: 'sidebar',
+      target: 'sidebar',
+      isEnabled: true,
+      isHighlight: false
+    },
+    {
+      id: 'dock-beranda',
+      label: 'Beranda',
+      icon: 'home',
+      actionType: 'tab',
+      target: 'beranda',
+      isEnabled: true
+    },
+    {
+      id: 'dock-layanan',
+      label: 'Layanan',
+      icon: 'services',
+      actionType: 'tab',
+      target: 'layanan',
+      isEnabled: true
+    },
+    {
+      id: 'dock-dokumen',
+      label: 'SIPANDU',
+      icon: 'document',
+      actionType: 'tab',
+      target: 'dokumen',
+      isEnabled: true
+    },
+    {
+      id: 'dock-wa',
+      label: 'Chat WA',
+      icon: 'whatsapp',
+      actionType: 'url',
+      target: 'https://wa.me/628889924444',
+      isEnabled: true
+    },
+    {
+      id: 'dock-ugd',
+      label: 'UGD 24 Jam',
+      icon: 'emergency',
+      actionType: 'tel',
+      target: 'tel:08889924444',
+      isEnabled: true,
+      isHighlight: true,
+      badge: '24 Jam'
+    }
+  ]
+};

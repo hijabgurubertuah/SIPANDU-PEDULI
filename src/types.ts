@@ -173,3 +173,21 @@ export interface DriveFileItem {
   uploadedAt: string;
   isCurrentLogo?: boolean;
 }
+
+export interface MobileDockItem {
+  id: string;
+  label: string;
+  icon: 'menu' | 'home' | 'services' | 'document' | 'mitra' | 'complaint' | 'phone' | 'whatsapp' | 'emergency';
+  actionType: 'sidebar' | 'tab' | 'url' | 'tel';
+  target: string;
+  isEnabled: boolean;
+  isHighlight?: boolean;
+  badge?: string;
+}
+
+export interface MobileDockConfig {
+  enabled: boolean;
+  blurEffect: boolean;
+  showLabels: boolean;
+  items: MobileDockItem[];
+}

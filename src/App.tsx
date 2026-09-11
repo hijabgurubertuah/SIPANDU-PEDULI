@@ -19,7 +19,8 @@ import {
   DriveFileItem,
   ServiceItem,
   DigitalSystemItem,
-  NewsAnnouncement
+  NewsAnnouncement,
+  MobileDockConfig
 } from './types';
 import {
   MOCK_USERS,
@@ -33,8 +34,13 @@ import {
   MOCK_NEWS,
   DEFAULT_SITE_SETTINGS,
   DEFAULT_MARQUEE_SETTINGS,
+  DEFAULT_DOCK_CONFIG,
   MOCK_DRIVE_GALLERY
 } from './data/mockData';
+import MobileDock from './components/MobileDock';
+import PublicMobileSidebar from './components/PublicMobileSidebar';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import { loadAllFromFirestore } from './lib/firebase';
 
 export default function App() {
   // Dark mode state
@@ -134,6 +140,19 @@ export default function App() {
     return localStorage.getItem('sipandu_admin_pwd') || 'sipandu123';
   });
 
+  // Mobile Docker Config state
+  const [dockConfig, setDockConfig] = useState<MobileDockConfig>(() => {
+    try {
+      const saved = localStorage.getItem('sipandu_dock_config');
+      return saved ? { ...DEFAULT_DOCK_CONFIG, ...JSON.parse(saved) } : DEFAULT_DOCK_CONFIG;
+    } catch {
+      return DEFAULT_DOCK_CONFIG;
+    }
+  });
+
+  // Public Mobile Sidebar Drawer Open/Close state
+  const [publicSidebarOpen, setPublicSidebarOpen] = useState(false);
+
   // Sync CMS state changes to localStorage
   useEffect(() => {
     localStorage.setItem('sipandu_site_settings', JSON.stringify(siteSettings));
@@ -164,8 +183,33 @@ export default function App() {
   }, [newsList]);
 
   useEffect(() => {
+    localStorage.setItem('sipandu_dock_config', JSON.stringify(dockConfig));
+  }, [dockConfig]);
+
+  useEffect(() => {
     localStorage.setItem('sipandu_admin_pwd', adminPassword);
   }, [adminPassword]);
+
+  // Initial load from Firebase Firestore (Public & Admin sync)
+  const fetchCloudData = async () => {
+    try {
+      const data = await loadAllFromFirestore();
+      if (data.siteSettings) setSiteSettings(data.siteSettings);
+      if (data.marqueeSettings) setMarqueeSettings(data.marqueeSettings);
+      if (data.dockConfig) setDockConfig(data.dockConfig);
+      if (data.mitraList && data.mitraList.length > 0) setMitraList(data.mitraList);
+      if (data.services && data.services.length > 0) setServices(data.services);
+      if (data.systems && data.systems.length > 0) setSystems(data.systems);
+      if (data.newsList && data.newsList.length > 0) setNewsList(data.newsList);
+      if (data.gallery && data.gallery.length > 0) setDriveGallery(data.gallery);
+    } catch (e) {
+      console.warn('Initial cloud sync error:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCloudData();
+  }, []);
 
   // Operational Data states with persistence
   const [documents, setDocuments] = useState<DocumentItem[]>(MOCK_DOCUMENTS);
@@ -297,10 +341,11 @@ export default function App() {
         }}
         siteSettings={siteSettings}
         marqueeSettings={marqueeSettings}
+        onOpenMobileSidebar={() => setPublicSidebarOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main className="grow">
+      {/* Main Content Area with safe padding for Mobile Dock */}
+      <main className={`grow ${currentView === 'public' && dockConfig.enabled ? 'pb-24 md:pb-0' : ''}`}>
         {currentView === 'public' ? (
           <PublicArea
             activeTab={activePublicTab}
@@ -351,12 +396,15 @@ export default function App() {
             onUpdateSystems={setSystems}
             newsList={newsList}
             onUpdateNewsList={setNewsList}
+            dockConfig={dockConfig}
+            onUpdateDockConfig={setDockConfig}
             adminPassword={adminPassword}
             onUpdateAdminPassword={setAdminPassword}
             onExitAdmin={() => {
               setCurrentView('public');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
+            onRefreshData={fetchCloudData}
           />
         )}
       </main>
@@ -373,6 +421,47 @@ export default function App() {
         }}
         siteSettings={siteSettings}
       />
+
+      {/* Mobile Floating Dock (At the bottom of screen on Mobile) */}
+      {currentView === 'public' && (
+        <MobileDock
+          config={dockConfig}
+          activeTab={activePublicTab}
+          onSelectTab={(tab) => {
+            setActivePublicTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenSidebar={() => setPublicSidebarOpen(true)}
+        />
+      )}
+
+      {/* Public Mobile Sidebar Drawer */}
+      <PublicMobileSidebar
+        isOpen={publicSidebarOpen}
+        onClose={() => setPublicSidebarOpen(false)}
+        activeTab={activePublicTab}
+        onSelectTab={(tab) => {
+          setActivePublicTab(tab);
+          setPublicSidebarOpen(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenPegawaiPortal={() => {
+          setCurrentView('pegawai');
+          setPublicSidebarOpen(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenAdminPortal={() => {
+          setCurrentView('admin');
+          setPublicSidebarOpen(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        siteSettings={siteSettings}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
+      />
+
+      {/* PWA Install Notification Prompt */}
+      <PWAInstallPrompt />
 
       {/* Document Gateway Detail Modal */}
       <DocumentModal

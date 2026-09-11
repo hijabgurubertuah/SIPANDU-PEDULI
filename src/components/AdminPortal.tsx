@@ -35,7 +35,11 @@ import {
   LogOut,
   FolderOpen,
   SlidersHorizontal,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Smartphone,
+  Activity,
+  HeartPulse,
+  MessageCircle
 } from 'lucide-react';
 import {
   SiteSettings,
@@ -44,15 +48,30 @@ import {
   DriveFileItem,
   ServiceItem,
   DigitalSystemItem,
-  NewsAnnouncement
+  NewsAnnouncement,
+  MobileDockConfig,
+  MobileDockItem
 } from '../types';
-import { VILLAGES_KEPANJEN } from '../data/mockData';
+import { VILLAGES_KEPANJEN, DEFAULT_DOCK_CONFIG } from '../data/mockData';
+import FirebaseStatusTab from './FirebaseStatusTab';
+import {
+  saveSiteSettingsToFirestore,
+  saveMarqueeSettingsToFirestore,
+  saveDockConfigToFirestore,
+  saveMitraToFirestore,
+  saveServicesToFirestore,
+  saveSystemsToFirestore,
+  saveNewsToFirestore,
+  saveGalleryToFirestore
+} from '../lib/firebase';
 
 interface AdminPortalProps {
   siteSettings: SiteSettings;
   onUpdateSiteSettings: (newSettings: SiteSettings) => void;
   marqueeSettings: MarqueeSettings;
   onUpdateMarqueeSettings: (newMarquee: MarqueeSettings) => void;
+  dockConfig: MobileDockConfig;
+  onUpdateDockConfig: (newDock: MobileDockConfig) => void;
   mitraList: HealthPostMitra[];
   onUpdateMitraList: (newList: HealthPostMitra[]) => void;
   driveGallery: DriveFileItem[];
@@ -66,6 +85,7 @@ interface AdminPortalProps {
   adminPassword: string;
   onUpdateAdminPassword: (newPassword: string) => void;
   onExitAdmin: () => void;
+  onRefreshData?: () => Promise<void>;
 }
 
 export default function AdminPortal({
@@ -73,6 +93,8 @@ export default function AdminPortal({
   onUpdateSiteSettings,
   marqueeSettings,
   onUpdateMarqueeSettings,
+  dockConfig,
+  onUpdateDockConfig,
   mitraList,
   onUpdateMitraList,
   driveGallery,
@@ -85,7 +107,8 @@ export default function AdminPortal({
   onUpdateNewsList,
   adminPassword,
   onUpdateAdminPassword,
-  onExitAdmin
+  onExitAdmin,
+  onRefreshData
 }: AdminPortalProps) {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -100,6 +123,7 @@ export default function AdminPortal({
     | 'overview'
     | 'identity'
     | 'marquee'
+    | 'dock'
     | 'gallery'
     | 'mitra'
     | 'services'
@@ -107,6 +131,7 @@ export default function AdminPortal({
     | 'news'
     | 'appscript'
     | 'security'
+    | 'firebase'
   >('overview');
 
   // Mobile Sidebar Drawer
@@ -131,6 +156,9 @@ export default function AdminPortal({
   // 2. Marquee Form
   const [marqForm, setMarqForm] = useState<MarqueeSettings>(marqueeSettings);
 
+  // 2b. Mobile Dock Settings Form
+  const [dockForm, setDockForm] = useState<MobileDockConfig>(dockConfig);
+
   // 3. Mitra Modal & Form
   const [isMitraModalOpen, setIsMitraModalOpen] = useState(false);
   const [editingMitraId, setEditingMitraId] = useState<string | null>(null);
@@ -151,6 +179,8 @@ export default function AdminPortal({
   const [uploadDriveUrl, setUploadDriveUrl] = useState('');
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState('');
   const [selectedImagePreview, setSelectedImagePreview] = useState<DriveFileItem | null>(null);
+  const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
+  const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
 
   // 5. Password Change Form
   const [currentPwdInput, setCurrentPwdInput] = useState('');
@@ -160,8 +190,9 @@ export default function AdminPortal({
   const [showPwd, setShowPwd] = useState(false);
 
   // 6. Apps Script Settings
-  const [appScriptUrl, setAppScriptUrl] = useState(() => localStorage.getItem('sipandu_gas_url') || '');
-  const [driveFolderId, setDriveFolderId] = useState(() => localStorage.getItem('sipandu_drive_folder_id') || '1kPnxxxxxxxxxxxxxxxxxxxxx');
+  const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlnTOpIX84wHErTrqXRV9lFMCxCoxwcwWKQEMUb988UrB3FERMdi_HceZM5P3yh9bUKQ/exec';
+  const [appScriptUrl, setAppScriptUrl] = useState(() => localStorage.getItem('sipandu_gas_url') || DEFAULT_APPS_SCRIPT_URL);
+  const [driveFolderId, setDriveFolderId] = useState(() => localStorage.getItem('sipandu_drive_folder_id') || '');
   const [copiedScript, setCopiedScript] = useState(false);
 
   // ----------------------------------------------------
@@ -187,18 +218,162 @@ export default function AdminPortal({
   };
 
   // ----------------------------------------------------
-  // SAVE HANDLERS
+  // SAVE HANDLERS (Simpan ke Firebase Firestore & Lokal)
   // ----------------------------------------------------
-  const handleSaveIdentity = (e: FormEvent) => {
+  const [isSavingCloud, setIsSavingCloud] = useState(false);
+
+  const handleSaveIdentity = async (e: FormEvent) => {
     e.preventDefault();
     onUpdateSiteSettings(identForm);
-    showToast('Identitas dan Logo Puskesmas berhasil disimpan!');
+    setIsSavingCloud(true);
+    try {
+      await saveSiteSettingsToFirestore(identForm);
+      showToast('Identitas & Logo berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Disimpan lokal. Status Cloud: ' + (err.message || 'Offline'));
+    } finally {
+      setIsSavingCloud(false);
+    }
   };
 
-  const handleSaveMarquee = (e: FormEvent) => {
+  const handleSaveMarquee = async (e: FormEvent) => {
     e.preventDefault();
     onUpdateMarqueeSettings(marqForm);
-    showToast('Pengaturan Teks Berjalan (Marquee) berhasil diperbarui!');
+    setIsSavingCloud(true);
+    try {
+      await saveMarqueeSettingsToFirestore(marqForm);
+      showToast('Pengaturan Teks Berjalan berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Disimpan lokal. Status Cloud: ' + (err.message || 'Offline'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  // Docker Mobile Management Handlers
+  const handleSaveDock = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
+    onUpdateDockConfig(dockForm);
+    setIsSavingCloud(true);
+    try {
+      await saveDockConfigToFirestore(dockForm);
+      showToast('Konfigurasi Docker Mobile berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Disimpan lokal. Status Cloud: ' + (err.message || 'Offline'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  // Explicit Save Handlers for remaining tabs to prevent unwanted quota usage
+  const handleSyncMitraToFirestore = async () => {
+    setIsSavingCloud(true);
+    try {
+      await saveMitraToFirestore(mitraList);
+      showToast('Daftar seluruh Mitra Pelayanan Faskes berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Gagal simpan ke Firebase: ' + (err.message || 'Error'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  const handleSyncServicesToFirestore = async () => {
+    setIsSavingCloud(true);
+    try {
+      await saveServicesToFirestore(services);
+      showToast('Daftar Poliklinik & Layanan berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Gagal simpan ke Firebase: ' + (err.message || 'Error'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  const handleSyncSystemsToFirestore = async () => {
+    setIsSavingCloud(true);
+    try {
+      await saveSystemsToFirestore(systems);
+      showToast('Daftar Gateway Sistem Digital berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Gagal simpan ke Firebase: ' + (err.message || 'Error'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  const handleSyncNewsToFirestore = async () => {
+    setIsSavingCloud(true);
+    try {
+      await saveNewsToFirestore(newsList);
+      showToast('Daftar Berita & Pengumuman berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Gagal simpan ke Firebase: ' + (err.message || 'Error'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  const handleSyncGalleryToFirestore = async () => {
+    setIsSavingCloud(true);
+    try {
+      await saveGalleryToFirestore(driveGallery);
+      showToast('Daftar Galeri & Tautan Drive berhasil disimpan ke Firebase Firestore!');
+    } catch (err: any) {
+      showToast('Gagal simpan ke Firebase: ' + (err.message || 'Error'));
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  const handleUpdateDockItem = (id: string, updates: Partial<MobileDockItem>) => {
+    setDockForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    }));
+  };
+
+  const handleToggleDockItem = (id: string) => {
+    setDockForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => (item.id === id ? { ...item, isEnabled: !item.isEnabled } : item))
+    }));
+  };
+
+  const handleDeleteDockItem = (id: string) => {
+    if (id === 'dock-menu') {
+      alert('Tombol Menu Sidebar (paling kiri) wajib ada agar pengunjung HP dapat membuka menu!');
+      return;
+    }
+    setDockForm((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.id !== id)
+    }));
+    showToast('Tombol docker berhasil dihapus.');
+  };
+
+  const handleAddDockItem = () => {
+    const newItem: MobileDockItem = {
+      id: `dock-custom-${Date.now()}`,
+      label: 'Menu Baru',
+      icon: 'document',
+      actionType: 'tab',
+      target: 'dokumen',
+      isEnabled: true
+    };
+    setDockForm((prev) => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+    showToast('Tombol baru ditambahkan ke docker.');
+  };
+
+  const handleResetDock = () => {
+    if (window.confirm('Kembalikan konfigurasi Docker Mobile ke pengaturan bawaan?')) {
+      setDockForm(DEFAULT_DOCK_CONFIG);
+      onUpdateDockConfig(DEFAULT_DOCK_CONFIG);
+      showToast('Docker mobile dikembalikan ke pengaturan bawaan.');
+    }
   };
 
   // Mitra Management
@@ -250,6 +425,7 @@ export default function AdminPortal({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setSelectedFileObj(file);
     setUploadFileName(file.name);
     // Convert to Base64 for instant preview
     const reader = new FileReader();
@@ -260,29 +436,75 @@ export default function AdminPortal({
     reader.readAsDataURL(file);
   };
 
-  const handleAddDriveFile = (e: FormEvent) => {
+  const handleAddDriveFile = async (e: FormEvent) => {
     e.preventDefault();
     if (!uploadFileName.trim()) {
-      alert('Nama file wajib diisi');
+      showToast('Nama file wajib diisi');
       return;
+    }
+
+    setIsUploadingToDrive(true);
+    let driveFileUrl = uploadDriveUrl.trim();
+    let finalThumbnail = uploadPreviewUrl.trim() || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80';
+    let detectedFolderId = driveFolderId;
+
+    // Direct upload to Google Apps Script endpoint if configured
+    if (appScriptUrl && uploadPreviewUrl && uploadPreviewUrl.startsWith('data:')) {
+      try {
+        const base64Content = uploadPreviewUrl.split(',')[1] || uploadPreviewUrl;
+        const res = await fetch(appScriptUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'uploadImage',
+            fileName: uploadFileName,
+            mimeType: selectedFileObj?.type || (uploadFileName.endsWith('.png') ? 'image/png' : 'image/jpeg'),
+            base64: base64Content,
+            category: uploadCategory,
+            folderId: driveFolderId || undefined
+          })
+        });
+        
+        if (res.ok) {
+          const result = await res.json();
+          if (result.status === 'success' || result.thumbnailUrl || result.fileId) {
+            if (result.thumbnailUrl) finalThumbnail = result.thumbnailUrl;
+            if (result.driveUrl) driveFileUrl = result.driveUrl;
+            if (result.folderId) {
+              detectedFolderId = result.folderId;
+              setDriveFolderId(result.folderId);
+              localStorage.setItem('sipandu_drive_folder_id', result.folderId);
+            }
+          }
+        }
+      } catch (gasErr) {
+        console.warn('Apps Script upload note:', gasErr);
+      }
     }
 
     const newDriveItem: DriveFileItem = {
       id: `drive-${Date.now()}`,
       name: uploadFileName.trim(),
-      driveUrl: uploadDriveUrl.trim() || 'https://drive.google.com/drive/folders/' + driveFolderId,
-      thumbnailUrl: uploadPreviewUrl.trim() || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=80',
+      driveUrl: driveFileUrl || (detectedFolderId ? `https://drive.google.com/drive/folders/${detectedFolderId}` : 'https://drive.google.com'),
+      thumbnailUrl: finalThumbnail,
       mimeType: uploadFileName.endsWith('.png') ? 'image/png' : 'image/jpeg',
-      size: '350 KB',
+      size: selectedFileObj ? `${Math.round(selectedFileObj.size / 1024)} KB` : '350 KB',
       category: uploadCategory,
       uploadedAt: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) + ', ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
     };
 
-    onUpdateDriveGallery([newDriveItem, ...driveGallery]);
+    const updatedGallery = [newDriveItem, ...driveGallery];
+    onUpdateDriveGallery(updatedGallery);
+    try {
+      await saveGalleryToFirestore(updatedGallery);
+    } catch (_) {}
+
     setUploadFileName('');
     setUploadDriveUrl('');
     setUploadPreviewUrl('');
-    showToast('Berkas gambar berhasil didaftarkan ke Galeri Drive!');
+    setSelectedFileObj(null);
+    setIsUploadingToDrive(false);
+    showToast('Gambar berhasil diunggah ke Galeri Drive & Firebase!');
   };
 
   const handleDeleteDriveFile = (id: string) => {
@@ -582,8 +804,10 @@ function doGet(e) {
   // ----------------------------------------------------
   const navMenuItems = [
     { id: 'overview', label: 'Ringkasan & Status', icon: LayoutGridIcon, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'firebase', label: 'Status Firebase Cloud', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { id: 'identity', label: 'Identitas & Logo', icon: Image, color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { id: 'marquee', label: 'Teks Berjalan (Marquee)', icon: Type, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+    { id: 'dock', label: 'Docker Mobile HP', icon: Smartphone, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
     { id: 'gallery', label: 'Galeri Drive & Thumbnail', icon: HardDrive, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
     { id: 'mitra', label: 'Mitra Pelayanan Faskes', icon: Users, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { id: 'services', label: 'Poliklinik & Layanan', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -607,94 +831,41 @@ function doGet(e) {
       )}
 
       {/* ======================================================== */}
-      {/* FLOATING BUTTON ON MOBILE (KIRI TENGAH LAYAR HP)         */}
-      {/* "pada tampilan hp sidebarnya tersembunyi, dan bisa        */}
-      {/* dimunculkan dengan tombol yang ada di kiri tengah layar hp,*/}
-      {/* tombol itu ada logo puskesmas yang akan di unggah nanti"   */}
+      {/* TOMBOL KIRI TENGAH UNTUK MEMUNCULKAN SIDEBAR             */}
+      {/* Ukuran: Tinggi 120px, Lebar 30px, Rounded, Logo Rotate-Y */}
       {/* ======================================================== */}
-      <div className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-50">
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50">
         <button
           onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-          title="Buka Menu Admin CMS"
-          className="group flex items-center bg-gradient-to-r from-emerald-600 to-teal-700 text-white pl-2 pr-3 py-2.5 rounded-r-2xl shadow-2xl border-y border-r border-emerald-400/40 hover:scale-105 active:scale-95 transition-all duration-200"
+          title="Buka / Tutup Sidebar Menu CMS"
+          aria-label="Buka Sidebar Menu CMS"
+          className="w-[30px] h-[120px] bg-gradient-to-b from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white rounded-r-2xl shadow-2xl border-y border-r border-emerald-400/60 flex flex-col items-center justify-between py-3 active:scale-95 transition-all group overflow-hidden cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-xl bg-white/20 p-1 flex items-center justify-center overflow-hidden mr-2 ring-1 ring-white/50">
+          {/* Top grip indicator */}
+          <div className="flex flex-col gap-1 items-center opacity-80">
+            <span className="w-1.5 h-1.5 rounded-full bg-white/90 shadow-xs" />
+            <span className="w-1 h-1 rounded-full bg-emerald-200/80" />
+          </div>
+
+          {/* Centered logo with Rotate-Y 3D animation */}
+          <div className="w-5 h-5 flex items-center justify-center animate-rotate-y [transform-style:preserve-3d]">
             {siteSettings.logoUrl ? (
               <img
                 src={siteSettings.logoUrl}
                 alt="Logo Puskesmas"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
               />
             ) : (
-              <Building2 className="w-5 h-5 text-white" />
+              <Activity className="w-4 h-4 text-white drop-shadow-xs" />
             )}
           </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black uppercase tracking-wider leading-none text-emerald-200">
-              Menu CMS
-            </span>
-            <span className="text-[11px] font-extrabold leading-tight">
-              Admin
-            </span>
+
+          {/* Bottom grip indicator */}
+          <div className="flex flex-col gap-1 items-center opacity-80">
+            <span className="w-1 h-1 rounded-full bg-emerald-200/80" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white/90 shadow-xs" />
           </div>
         </button>
-      </div>
-
-      {/* Top Bar for Admin */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-16 z-30 shadow-xs">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-md">
-              {siteSettings.logoUrl ? (
-                <img
-                  src={siteSettings.logoUrl}
-                  alt="Logo"
-                  className="w-7 h-7 object-contain rounded-lg"
-                />
-              ) : (
-                <Settings className="w-5 h-5" />
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
-                  Dashboard Pengelola Tampilan (CMS)
-                </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  Aktif
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {siteSettings.name} • One Link, One Click Access
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onExitAdmin}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1.5"
-          >
-            <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="hidden sm:inline">Lihat Halaman Publik</span>
-          </button>
-
-          <button
-            onClick={handleLogout}
-            title="Keluar Sesi Admin"
-            className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950 text-rose-600 text-xs font-bold transition"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
       {/* Main Container with Left Sidebar & Content */}
@@ -761,15 +932,22 @@ function doGet(e) {
             })}
           </div>
 
-          {/* Quick Info Box */}
-          <div className="bg-gradient-to-br from-emerald-900 to-teal-950 text-white rounded-2xl p-4 shadow-xs space-y-2 text-xs">
-            <div className="font-bold flex items-center gap-1.5 text-emerald-300">
-              <Sparkles className="w-4 h-4" />
-              <span>Sinkronisasi Otomatis</span>
-            </div>
-            <p className="text-[11px] text-emerald-100/80 leading-relaxed">
-              Semua perubahan yang disimpan langsung berefek pada area publik dan portal pegawai.
-            </p>
+          {/* Quick Actions (Kembali ke Publik & Keluar Sesi) */}
+          <div className="space-y-2 pt-1">
+            <button
+              onClick={onExitAdmin}
+              className="w-full py-2.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Lihat Halaman Publik</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950 text-rose-600 text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Keluar Sesi CMS</span>
+            </button>
           </div>
 
         </aside>
@@ -838,16 +1016,26 @@ function doGet(e) {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
                 <button
                   onClick={() => {
                     onExitAdmin();
                     setMobileSidebarOpen(false);
                   }}
-                  className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-4 h-4 text-emerald-600" />
                   <span>Lihat Tampilan Publik</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileSidebarOpen(false);
+                  }}
+                  className="w-full py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Keluar Sesi CMS</span>
                 </button>
               </div>
             </div>
@@ -888,7 +1076,7 @@ function doGet(e) {
               </div>
 
               {/* Status Metrics Cards */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 
                 {/* Logo Status */}
                 <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
@@ -926,6 +1114,26 @@ function doGet(e) {
                     className="text-[11px] font-bold text-cyan-600 hover:underline"
                   >
                     Atur Running Text &rarr;
+                  </button>
+                </div>
+
+                {/* Docker Mobile Status */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase text-slate-400">Docker Mobile HP</span>
+                    <div className="w-7 h-7 rounded-lg bg-fuchsia-500/10 text-fuchsia-600 flex items-center justify-center">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${dockConfig.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                    <span>{dockConfig.enabled ? `${dockConfig.items.filter(i => i.isEnabled).length} Tombol` : 'Non-Aktif'}</span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('dock')}
+                    className="text-[11px] font-bold text-fuchsia-600 hover:underline"
+                  >
+                    Atur Docker HP &rarr;
                   </button>
                 </div>
 
@@ -1302,10 +1510,11 @@ function doGet(e) {
                 <div className="pt-4 flex justify-end">
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2"
+                    disabled={isSavingCloud}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
-                    <span>Simpan Pengaturan</span>
+                    <span>{isSavingCloud ? 'Menyimpan ke Cloud...' : 'Simpan Identitas ke Firebase Firestore'}</span>
                   </button>
                 </div>
               </form>
@@ -1329,10 +1538,11 @@ function doGet(e) {
                 <button
                   type="button"
                   onClick={handleSaveMarquee}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto"
+                  disabled={isSavingCloud}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Simpan Teks Berjalan</span>
+                  <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Marquee ke Firebase Firestore'}</span>
                 </button>
               </div>
 
@@ -1464,6 +1674,434 @@ function doGet(e) {
             </div>
           )}
 
+          {/* ================= TAB 3B: DOCKER MOBILE (HP) ================= */}
+          {activeTab === 'dock' && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Smartphone className="w-5 h-5 text-fuchsia-600" />
+                    <span>Pengaturan Docker Mobile di Bagian Bawah Layar HP</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Kustomisasi bilah navigasi bawah (Docker) yang muncul di ponsel. Tombol paling kiri bertindak sebagai pemicu menu sidebar.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleResetDock}
+                    className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition"
+                  >
+                    Reset Bawaan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveDock}
+                    disabled={isSavingCloud}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Docker ke Firebase'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Layout: Phone Simulator & Settings */}
+              <div className="grid lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left: Interactive Phone Mockup */}
+                <div className="lg:col-span-5 flex flex-col items-center">
+                  <div className="w-full max-w-[320px] bg-slate-900 rounded-[2.5rem] p-3 ring-8 ring-slate-800/80 shadow-2xl space-y-3">
+                    {/* Phone Top Notch */}
+                    <div className="flex justify-center items-center gap-2 pt-1 pb-2">
+                      <span className="w-3 h-3 rounded-full bg-slate-800 ring-1 ring-slate-700" />
+                      <span className="w-14 h-1.5 rounded-full bg-slate-800" />
+                    </div>
+
+                    {/* Phone Screen Simulated Content */}
+                    <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl h-[460px] overflow-hidden flex flex-col justify-between relative border border-slate-700/50">
+                      
+                      {/* Simulated Header */}
+                      <div className="bg-emerald-800 text-white p-3 flex items-center justify-between text-[11px] font-bold">
+                        <div className="flex items-center gap-1.5 truncate">
+                          {siteSettings.logoUrl ? (
+                            <img src={siteSettings.logoUrl} alt="Logo" className="w-4 h-4 object-contain rounded" />
+                          ) : (
+                            <Activity className="w-3.5 h-3.5" />
+                          )}
+                          <span className="truncate">{siteSettings.name}</span>
+                        </div>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      </div>
+
+                      {/* Simulated Body Content */}
+                      <div className="p-3 space-y-2 flex-1 overflow-y-auto text-left">
+                        <div className="bg-emerald-600 text-white p-3 rounded-xl space-y-1 shadow-xs">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-emerald-200">
+                            Pratinjau Smartphone
+                          </span>
+                          <h4 className="text-xs font-black leading-tight">
+                            Akses Cepat Satu Sentuhan (One-Link)
+                          </h4>
+                          <p className="text-[10px] text-emerald-100/90 leading-relaxed">
+                            Docker di bawah layar memudahkan jempol masyarakat menjangkau menu dan telepon darurat.
+                          </p>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
+                              UGD & Ambulans 24 Jam
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-rose-100 text-rose-700">
+                              Siaga
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-slate-500">
+                            Hotline darurat terintegrasi langsung dengan tombol cepat.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Simulated Docker Bar at bottom */}
+                      {dockForm.enabled ? (
+                        <div className="p-2 w-full">
+                          <div
+                            className={`rounded-2xl border flex items-center justify-around py-1.5 px-1 shadow-lg ${
+                              dockForm.blurEffect
+                                ? 'bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-white/40 dark:border-slate-700/60'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                            }`}
+                          >
+                            {dockForm.items
+                              .filter((item) => item.isEnabled)
+                              .map((item, idx) => (
+                                <div
+                                  key={item.id}
+                                  className={`flex flex-col items-center justify-center p-1 rounded-xl transition ${
+                                    item.isHighlight
+                                      ? 'bg-rose-600 text-white px-2 py-1 shadow-xs'
+                                      : idx === 0
+                                      ? 'text-emerald-600 font-extrabold'
+                                      : 'text-slate-600 dark:text-slate-400'
+                                  }`}
+                                >
+                                  <div className="relative">
+                                    {item.icon === 'menu' && <Menu className="w-4 h-4" />}
+                                    {item.icon === 'home' && <Activity className="w-4 h-4" />}
+                                    {item.icon === 'services' && <Building2 className="w-4 h-4" />}
+                                    {item.icon === 'document' && <FileSpreadsheet className="w-4 h-4" />}
+                                    {item.icon === 'mitra' && <Users className="w-4 h-4" />}
+                                    {item.icon === 'complaint' && <MessageCircle className="w-4 h-4" />}
+                                    {item.icon === 'phone' && <Phone className="w-4 h-4" />}
+                                    {item.icon === 'whatsapp' && <MessageCircle className="w-4 h-4 text-emerald-500" />}
+                                    {item.icon === 'emergency' && <Phone className="w-4 h-4 animate-bounce text-rose-500" />}
+                                    
+                                    {item.badge && (
+                                      <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full text-[7px] font-black bg-rose-600 text-white leading-none">
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {dockForm.showLabels && (
+                                    <span className="text-[8px] font-bold mt-0.5 tracking-tight truncate max-w-[46px]">
+                                      {item.label}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2 text-center text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-900/50">
+                          (Docker Dinonaktifkan)
+                        </div>
+                      )}
+
+                    </div>
+
+                    {/* Phone Home Bar */}
+                    <div className="w-24 h-1 bg-slate-700 rounded-full mx-auto" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-2 text-center">
+                    Pratinjau tampilan navigasi bawah di smartphone
+                  </p>
+                </div>
+
+                {/* Right: Controls & Item Configuration */}
+                <div className="lg:col-span-7 space-y-6">
+                  
+                  {/* Global Switches */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-3">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block">
+                      Pengaturan Umum Docker
+                    </span>
+
+                    <div className="space-y-2">
+                      <label className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          Aktifkan Docker Bawah Layar di HP
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={dockForm.enabled}
+                          onChange={(e) => setDockForm({ ...dockForm, enabled: e.target.checked })}
+                          className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          Efek Kaca Transparan (Glassmorphism Blur)
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={dockForm.blurEffect}
+                          onChange={(e) => setDockForm({ ...dockForm, blurEffect: e.target.checked })}
+                          className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                        />
+                      </label>
+
+                      <label className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          Tampilkan Label Teks Bawah Ikon
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={dockForm.showLabels}
+                          onChange={(e) => setDockForm({ ...dockForm, showLabels: e.target.checked })}
+                          className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* List of Dock Items */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs font-extrabold uppercase text-slate-700 dark:text-slate-300">
+                          Daftar Tombol Navigasi Docker ({dockForm.items.length})
+                        </h3>
+                        <p className="text-[11px] text-slate-500">
+                          Urutan dari kiri ke kanan. Tombol paling kiri dikhususkan untuk memunculkan menu sidebar samping.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddDockItem}
+                        className="px-3 py-1.5 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-100 font-bold text-xs flex items-center gap-1.5 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Tombol</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {dockForm.items.map((item, index) => {
+                        const isFirstMenu = item.id === 'dock-menu';
+                        return (
+                          <div
+                            key={item.id}
+                            className={`p-4 rounded-2xl border transition-all ${
+                              item.isEnabled
+                                ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xs'
+                                : 'bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300 text-[11px] font-black flex items-center justify-center">
+                                  {index + 1}
+                                </span>
+                                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                                  {isFirstMenu ? 'Tombol Paling Kiri: Pemicu Menu Sidebar' : item.label || 'Tombol Akses'}
+                                </span>
+                                {item.isHighlight && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-700 uppercase">
+                                    Highlight Merah
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                                  <span>{item.isEnabled ? 'Aktif' : 'Mati'}</span>
+                                  <input
+                                    type="checkbox"
+                                    checked={item.isEnabled}
+                                    onChange={() => handleToggleDockItem(item.id)}
+                                    className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                                  />
+                                </label>
+
+                                {!isFirstMenu && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteDockItem(item.id)}
+                                    title="Hapus Tombol"
+                                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Inputs Grid */}
+                            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                              {/* Label */}
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                  Label Tombol:
+                                </label>
+                                <input
+                                  type="text"
+                                  value={item.label}
+                                  onChange={(e) => handleUpdateDockItem(item.id, { label: e.target.value })}
+                                  placeholder="Contoh: Beranda"
+                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                />
+                              </div>
+
+                              {/* Icon Dropdown */}
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                  Pilihan Ikon:
+                                </label>
+                                <select
+                                  value={item.icon}
+                                  onChange={(e) => handleUpdateDockItem(item.id, { icon: e.target.value as any })}
+                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                >
+                                  <option value="menu">Menu Hamburger (Garis 3)</option>
+                                  <option value="home">Beranda (Home)</option>
+                                  <option value="services">Layanan / Poli</option>
+                                  <option value="document">Dokumen / SPO</option>
+                                  <option value="mitra">Mitra Pelayanan</option>
+                                  <option value="complaint">Pengaduan Warga</option>
+                                  <option value="phone">Telepon UGD</option>
+                                  <option value="whatsapp">Chat WhatsApp</option>
+                                  <option value="emergency">Panggilan Darurat (Sirene)</option>
+                                </select>
+                              </div>
+
+                              {/* Action Type */}
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                  Tipe Aksi:
+                                </label>
+                                <select
+                                  value={item.actionType}
+                                  onChange={(e) => handleUpdateDockItem(item.id, { actionType: e.target.value as any })}
+                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                >
+                                  <option value="sidebar">Buka Menu Sidebar Samping</option>
+                                  <option value="tab">Pindah Tab Halaman Publik</option>
+                                  <option value="url">Buka Tautan Link Web (URL)</option>
+                                  <option value="tel">Panggil Telepon (Tel:)</option>
+                                </select>
+                              </div>
+
+                              {/* Target */}
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                  Target / Nilai Aksi:
+                                </label>
+                                {item.actionType === 'tab' ? (
+                                  <select
+                                    value={item.target || 'beranda'}
+                                    onChange={(e) => handleUpdateDockItem(item.id, { target: e.target.value })}
+                                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                  >
+                                    <option value="beranda">Tab Beranda</option>
+                                    <option value="layanan">Tab Poliklinik & Layanan</option>
+                                    <option value="dokumen">Tab Informasi Publik & SPO</option>
+                                    <option value="mitra">Tab Mitra Faskes</option>
+                                    <option value="pengaduan">Tab Suara Warga / Aduan</option>
+                                  </select>
+                                ) : item.actionType === 'sidebar' ? (
+                                  <input
+                                    type="text"
+                                    disabled
+                                    value="Membuka Sidebar Mobile"
+                                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-400 italic"
+                                  />
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={item.target || ''}
+                                    onChange={(e) => handleUpdateDockItem(item.id, { target: e.target.value })}
+                                    placeholder={item.actionType === 'tel' ? '0341395990' : 'https://...'}
+                                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                  />
+                                )}
+                              </div>
+
+                              {/* Badge text */}
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                  Label Badge (Opsional):
+                                </label>
+                                <input
+                                  type="text"
+                                  value={item.badge || ''}
+                                  onChange={(e) => handleUpdateDockItem(item.id, { badge: e.target.value })}
+                                  placeholder="Contoh: 24 Jam / Baru"
+                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                                />
+                              </div>
+
+                              {/* Highlight Toggle */}
+                              <div className="flex items-end pb-1">
+                                <label className="flex items-center gap-2 text-[11px] font-bold text-rose-600 dark:text-rose-400 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!item.isHighlight}
+                                    onChange={(e) => handleUpdateDockItem(item.id, { isHighlight: e.target.checked })}
+                                    className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
+                                  />
+                                  <span>Tombol Menonjol (Merah)</span>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Save Footer Bar */}
+                  <div className="pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={handleAddDockItem}
+                      className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-2 transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Tambah Tombol Baru</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveDock}
+                      disabled={isSavingCloud}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Perubahan Docker ke Firebase'}</span>
+                    </button>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* ================= TAB 4: GALERI DRIVE & THUMBNAIL ORGANIZER ================= */}
           {activeTab === 'gallery' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
@@ -1478,10 +2116,19 @@ function doGet(e) {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
                     {driveGallery.length} Foto Terdaftar
                   </span>
+                  <button
+                    type="button"
+                    onClick={handleSyncGalleryToFirestore}
+                    disabled={isSavingCloud}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Galeri ke Firebase'}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1491,18 +2138,25 @@ function doGet(e) {
                   <div className="flex items-center gap-2">
                     <UploadCloud className="w-5 h-5 text-indigo-600" />
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      Daftarkan / Tautkan Gambar Baru dari Drive:
+                      Unggah Gambar ke Google Drive:
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400">
-                    Mendukung upload lokal / link Google Drive
-                  </span>
+                  {appScriptUrl ? (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Google Apps Script Aktif
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">
+                      Mendukung unggah lokal & Google Drive
+                    </span>
+                  )}
                 </div>
 
                 <form onSubmit={handleAddDriveFile} className="grid md:grid-cols-12 gap-3">
                   <div className="md:col-span-4">
                     <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                      Pilih Berkas dari Komputer/HP:
+                      Pilih Berkas Gambar:
                     </label>
                     <input
                       type="file"
@@ -1521,7 +2175,7 @@ function doGet(e) {
                       value={uploadFileName}
                       onChange={(e) => setUploadFileName(e.target.value)}
                       placeholder="Logo-Puskesmas-2026.png"
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
                       required
                     />
                   </div>
@@ -1533,7 +2187,7 @@ function doGet(e) {
                     <select
                       value={uploadCategory}
                       onChange={(e) => setUploadCategory(e.target.value as any)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
                     >
                       <option value="logo">Logo Puskesmas</option>
                       <option value="banner">Banner & Header</option>
@@ -1546,10 +2200,20 @@ function doGet(e) {
                   <div className="md:col-span-2 flex items-end">
                     <button
                       type="submit"
-                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
+                      disabled={isUploadingToDrive}
+                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah</span>
+                      {isUploadingToDrive ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Mengunggah...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-3.5 h-3.5" />
+                          <span>Unggah</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -1660,14 +2324,25 @@ function doGet(e) {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleOpenAddMitra}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Tambah Mitra Faskes</span>
-                </button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleSyncMitraToFirestore}
+                    disabled={isSavingCloud}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Mitra ke Firebase'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenAddMitra}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Mitra Faskes</span>
+                  </button>
+                </div>
               </div>
 
               {/* Table of Mitra */}
@@ -1737,7 +2412,7 @@ function doGet(e) {
           {/* ================= TAB 6: POLIKLINIK & LAYANAN ================= */}
           {activeTab === 'services' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-blue-600" />
@@ -1747,6 +2422,16 @@ function doGet(e) {
                     Sesuaikan jadwal, ruangan, dan dokter penanggung jawab setiap poli
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleSyncServicesToFirestore}
+                  disabled={isSavingCloud}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Layanan ke Firebase'}</span>
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -1796,7 +2481,7 @@ function doGet(e) {
           {/* ================= TAB 7: GATEWAY SISTEM DIGITAL ================= */}
           {activeTab === 'systems' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <SlidersHorizontal className="w-5 h-5 text-violet-600" />
@@ -1806,6 +2491,16 @@ function doGet(e) {
                     Kelola tautan SP4N LAPOR, SATUSEHAT, Mobile JKN, dan sistem lainnya
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleSyncSystemsToFirestore}
+                  disabled={isSavingCloud}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Sistem ke Firebase'}</span>
+                </button>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -1857,7 +2552,7 @@ function doGet(e) {
           {/* ================= TAB 8: BERITA & PENGUMUMAN ================= */}
           {activeTab === 'news' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <FolderOpen className="w-5 h-5 text-orange-600" />
@@ -1868,29 +2563,40 @@ function doGet(e) {
                   </p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    const title = prompt('Judul Berita/Pengumuman:');
-                    if (!title) return;
-                    const content = prompt('Isi Ringkas:');
-                    if (!content) return;
-                    const newItem: NewsAnnouncement = {
-                      id: `news-${Date.now()}`,
-                      title,
-                      category: 'Pengumuman',
-                      date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
-                      excerpt: content.slice(0, 80) + '...',
-                      content,
-                      author: 'Admin Puskesmas'
-                    };
-                    onUpdateNewsList([newItem, ...newsList]);
-                    showToast('Berita baru berhasil ditambahkan!');
-                  }}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Tambah Berita</span>
-                </button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleSyncNewsToFirestore}
+                    disabled={isSavingCloud}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Berita ke Firebase'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const title = prompt('Judul Berita/Pengumuman:');
+                      if (!title) return;
+                      const content = prompt('Isi Ringkas:');
+                      if (!content) return;
+                      const newItem: NewsAnnouncement = {
+                        id: `news-${Date.now()}`,
+                        title,
+                        category: 'Pengumuman',
+                        date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
+                        excerpt: content.slice(0, 80) + '...',
+                        content,
+                        author: 'Admin Puskesmas'
+                      };
+                      onUpdateNewsList([newItem, ...newsList]);
+                      showToast('Berita baru berhasil ditambahkan!');
+                    }}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Berita</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -1930,59 +2636,80 @@ function doGet(e) {
 
           {/* ================= TAB 9: KODE GOOGLE APPS SCRIPT ================= */}
           {activeTab === 'appscript' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs max-w-3xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <Code className="w-5 h-5 text-rose-600" />
-                    <span>Kode Google Apps Script (GAS) & Integrasi Drive / Spreadsheet</span>
+                    <span>Pengaturan Integrasi Google Apps Script & Drive</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Gunakan kode ini di Google Apps Script untuk otomatisasi unggah foto ke Drive dan sinkronisasi data
+                    Konfigurasi endpoint Web App untuk unggah gambar dan sinkronisasi
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={copyScriptToClipboard}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
                 >
-                  {copiedScript ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedScript ? 'Tersalin!' : 'Salin Seluruh Kode'}</span>
+                  {copiedScript ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedScript ? 'Kode Tersalin' : 'Salin Code.gs'}</span>
                 </button>
               </div>
 
-              {/* Instructions Guide */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3 text-xs">
-                <span className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-rose-500" />
-                  <span>Langkah-Langkah Pemasangan di Google Akun Puskesmas:</span>
-                </span>
-                <ol className="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-300 leading-relaxed">
-                  <li>Buka <strong>script.google.com</strong> dengan akun Google Puskesmas Kepanjen.</li>
-                  <li>Buat folder baru di Google Drive bernama <em>"SIPANDU_LOGO_FOTO"</em>, lalu salin Folder ID dari URL browser.</li>
-                  <li>Buat proyek baru di Google Apps Script, hapus semua kode bawaan, dan <strong>Paste kode di bawah ini</strong>.</li>
-                  <li>Ganti variabel <code>DRIVE_FOLDER_ID</code> dengan ID folder Anda.</li>
-                  <li>Klik <strong>Deploy &rarr; New Deployment &rarr; Pilih Web App</strong>. Atur: <em>Who has access</em> = <strong>Anyone (Siapa saja)</strong>.</li>
-                  <li>Salin <strong>Web App URL</strong> yang dihasilkan dan simpan pada pengaturan sinkronisasi.</li>
-                </ol>
-              </div>
+              {/* Minimalist GAS Settings Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    URL Web App Google Apps Script
+                  </label>
+                  <input
+                    type="url"
+                    value={appScriptUrl}
+                    onChange={(e) => {
+                      setAppScriptUrl(e.target.value);
+                      localStorage.setItem('sipandu_gas_url', e.target.value);
+                    }}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
 
-              {/* Code Snippet Box */}
-              <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 font-mono text-xs">
-                <div className="bg-slate-900 px-4 py-2.5 flex items-center justify-between border-b border-slate-800 text-slate-400">
-                  <span className="font-bold text-slate-300">Code.gs (Google Apps Script Backend)</span>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    ID Folder Google Drive (Opsional / Otomatis)
+                  </label>
+                  <input
+                    type="text"
+                    value={driveFolderId}
+                    onChange={(e) => {
+                      setDriveFolderId(e.target.value);
+                      localStorage.setItem('sipandu_drive_folder_id', e.target.value);
+                    }}
+                    placeholder="ID folder Google Drive (terisi otomatis saat unggahan pertama)"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">
+                    Endpoint aktif digunakan untuk mengunggah logo dan dokumen ke Drive.
+                  </span>
+
                   <button
-                    onClick={copyScriptToClipboard}
-                    className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                    type="button"
+                    onClick={() => {
+                      localStorage.setItem('sipandu_gas_url', appScriptUrl);
+                      localStorage.setItem('sipandu_drive_folder_id', driveFolderId);
+                      showToast('Pengaturan Google Apps Script berhasil disimpan!');
+                    }}
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer"
                   >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Salin Kode</span>
+                    <Save className="w-4 h-4" />
+                    <span>Simpan Pengaturan</span>
                   </button>
                 </div>
-                <pre className="p-4 text-emerald-400 overflow-x-auto max-h-[450px] leading-relaxed select-all">
-                  {googleAppsScriptCode}
-                </pre>
               </div>
             </div>
           )}
@@ -2078,6 +2805,21 @@ function doGet(e) {
                 </div>
               </form>
             </div>
+          )}
+
+          {/* ================= TAB: STATUS FIREBASE FIRESTORE ================= */}
+          {activeTab === 'firebase' && (
+            <FirebaseStatusTab
+              siteSettings={siteSettings}
+              marqueeSettings={marqueeSettings}
+              dockConfig={dockConfig}
+              mitraList={mitraList}
+              services={services}
+              systems={systems}
+              newsList={newsList}
+              driveGallery={driveGallery}
+              onRefreshData={onRefreshData || (async () => {})}
+            />
           )}
 
         </main>
