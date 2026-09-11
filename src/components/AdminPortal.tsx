@@ -39,7 +39,8 @@ import {
   Smartphone,
   Activity,
   HeartPulse,
-  MessageCircle
+  MessageCircle,
+  LayoutGrid
 } from 'lucide-react';
 import {
   SiteSettings,
@@ -85,6 +86,7 @@ interface AdminPortalProps {
   adminPassword: string;
   onUpdateAdminPassword: (newPassword: string) => void;
   onExitAdmin: () => void;
+  onOpenPegawaiPortal?: () => void;
   onRefreshData?: () => Promise<void>;
 }
 
@@ -108,6 +110,7 @@ export default function AdminPortal({
   adminPassword,
   onUpdateAdminPassword,
   onExitAdmin,
+  onOpenPegawaiPortal,
   onRefreshData
 }: AdminPortalProps) {
   // Authentication State
@@ -132,6 +135,7 @@ export default function AdminPortal({
     | 'appscript'
     | 'security'
     | 'firebase'
+    | 'pegawai'
   >('overview');
 
   // Mobile Sidebar Drawer
@@ -700,48 +704,22 @@ function doGet(e) {
   };
 
   // ----------------------------------------------------
-  // LOGIN SCREEN (If not authenticated)
+  // LOGIN SCREEN (Minimalist)
   // ----------------------------------------------------
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[85vh] flex items-center justify-center px-4 py-12 bg-slate-50 dark:bg-slate-950">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl border border-slate-200/80 dark:border-slate-800 space-y-6 relative overflow-hidden">
+      <div className="min-h-[75vh] flex items-center justify-center px-4 py-12 bg-slate-50 dark:bg-slate-950">
+        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800 space-y-5">
           
-          {/* Decorative Top Accent */}
-          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
-
-          {/* Logo & Header */}
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30">
-              {siteSettings.logoUrl ? (
-                <img
-                  src={siteSettings.logoUrl}
-                  alt="Logo Puskesmas"
-                  className="w-12 h-12 object-contain rounded-xl"
-                />
-              ) : (
-                <Building2 className="w-8 h-8" />
-              )}
+          <div className="text-center space-y-1.5">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-
-            <h1 className="text-xl font-black text-slate-900 dark:text-white">
-              Portal Admin CMS Tampilan
+            <h1 className="text-lg font-extrabold text-slate-900 dark:text-white">
+              Portal Admin
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {siteSettings.name}
-            </p>
-          </div>
-
-          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200">
-            <p className="font-semibold flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Autentikasi Pengelola Tampilan</span>
-            </p>
-            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 mt-1">
-              Gunakan kata sandi admin untuk mengedit identitas, logo, teks berjalan, dan mitra.
-              <span className="block mt-0.5 font-mono text-[10px] text-emerald-700 dark:text-emerald-400">
-                (Kata sandi awal: <strong>sipandu123</strong>)
-              </span>
+              Masukkan kata sandi admin
             </p>
           </div>
 
@@ -754,45 +732,44 @@ function doGet(e) {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Kata Sandi Admin CMS
-              </label>
               <div className="relative">
                 <input
                   type={showInputPassword ? 'text' : 'password'}
                   value={inputPassword}
                   onChange={(e) => setInputPassword(e.target.value)}
-                  placeholder="Masukkan password admin..."
+                  placeholder="Kata Sandi Admin..."
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-hidden pr-10 transition"
                   autoFocus
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => setShowInputPassword(!showInputPassword)}
-                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
                   {showInputPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-700/20 transition flex items-center justify-center gap-2"
-            >
-              <span>Buka Dashboard CMS</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
+            <div className="space-y-2 pt-1">
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Login</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
 
-          <div className="pt-2 text-center">
-            <button
-              onClick={onExitAdmin}
-              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline font-medium"
-            >
-              &larr; Kembali ke Tampilan Depan Publik
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={onExitAdmin}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </form>
 
         </div>
       </div>
@@ -803,14 +780,15 @@ function doGet(e) {
   // NAVIGATION MENU ITEMS (Colorful & Distinct Archetype)
   // ----------------------------------------------------
   const navMenuItems = [
-    { id: 'overview', label: 'Ringkasan & Status', icon: LayoutGridIcon, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'overview', label: 'Ringkasan & Status', icon: LayoutGrid, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'pegawai', label: 'Portal Pegawai Internal', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
     { id: 'firebase', label: 'Status Firebase Cloud', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' },
     { id: 'identity', label: 'Identitas & Logo', icon: Image, color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { id: 'marquee', label: 'Teks Berjalan (Marquee)', icon: Type, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
     { id: 'dock', label: 'Docker Mobile HP', icon: Smartphone, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
     { id: 'gallery', label: 'Galeri Drive & Thumbnail', icon: HardDrive, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
     { id: 'mitra', label: 'Mitra Pelayanan Faskes', icon: Users, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { id: 'services', label: 'Poliklinik & Layanan', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'services', label: 'Poliklinik & Layanan', icon: HeartPulse, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { id: 'systems', label: 'Gateway Sistem Digital', icon: SlidersHorizontal, color: 'text-violet-500', bg: 'bg-violet-500/10' },
     { id: 'news', label: 'Berita & Pengumuman', icon: FolderOpen, color: 'text-orange-500', bg: 'bg-orange-500/10' },
     { id: 'appscript', label: 'Kode Apps Script & Sync', icon: Code, color: 'text-rose-500', bg: 'bg-rose-500/10' },
@@ -1282,6 +1260,46 @@ function doGet(e) {
 
               </div>
 
+            </div>
+          )}
+
+          {/* ================= TAB: PORTAL PEGAWAI INTERNAL ================= */}
+          {activeTab === 'pegawai' && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 shadow-xs space-y-6 text-center max-w-2xl mx-auto">
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-xs">
+                <Building2 className="w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+                  Portal Pegawai Internal
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                  Ruang kerja digital untuk staf dan tenaga kesehatan Puskesmas Kepanjen: manajemen SOP, data indikator mutu faskes, logbook, e-kinerja, dan pengajuan cuti terpadu.
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenPegawaiPortal) {
+                      onOpenPegawaiPortal();
+                    }
+                  }}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>Buka Portal Pegawai Sekarang</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('overview')}
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition cursor-pointer"
+                >
+                  Kembali ke Ringkasan
+                </button>
+              </div>
             </div>
           )}
 

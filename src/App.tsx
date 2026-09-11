@@ -404,6 +404,10 @@ export default function App() {
               setCurrentView('public');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
+            onOpenPegawaiPortal={() => {
+              setCurrentView('pegawai');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             onRefreshData={fetchCloudData}
           />
         )}

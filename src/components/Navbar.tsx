@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Activity,
   Sun,
@@ -13,7 +13,8 @@ import {
   Building2,
   Lock,
   Settings,
-  Shield
+  Shield,
+  Sparkles
 } from 'lucide-react';
 import { UserAccount, SiteSettings, MarqueeSettings } from '../types';
 import { MOCK_USERS } from '../data/mockData';
@@ -53,6 +54,22 @@ export default function Navbar({
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close role simulator dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
+        setRoleDropdownOpen(false);
+      }
+    }
+    if (roleDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [roleDropdownOpen]);
 
   const publicNavItems = [
     { id: 'beranda', label: 'Beranda' },
@@ -208,12 +225,13 @@ export default function Navbar({
             </button>
 
             {/* Role Switcher / Simulator Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={roleDropdownRef}>
               <button
                 onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50 dark:bg-slate-800 text-xs font-medium transition"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50 dark:bg-slate-800/80 text-xs font-medium transition cursor-pointer shadow-2xs"
+                title="Klik untuk Simulasi Hak Akses & Role Pengguna"
               >
-                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold">
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
                   {currentUser.role[0].toUpperCase()}
                 </div>
                 <div className="hidden sm:block text-left">
@@ -221,24 +239,27 @@ export default function Navbar({
                     {currentUser.roleLabel}
                   </div>
                   <div className="text-[9px] text-slate-500 dark:text-slate-400">
-                    {currentView === 'pegawai' ? 'Internal' : currentView === 'admin' ? 'CMS Admin' : 'Area Publik'}
+                    {currentView === 'pegawai' ? 'Internal' : currentView === 'admin' ? 'Portal Admin' : 'Area Publik'}
                   </div>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-0.5 transition-transform duration-200 ${roleDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Role selector dropdown */}
+              {/* Modern Animated Role selector dropdown */}
               {roleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95">
-                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Simulasi Hak Akses (RBAC)
-                    </span>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Pilih role untuk menguji tampilan & izin akses:
-                    </p>
+                <div className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 p-2 z-50 animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 origin-top-right">
+                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1.5 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Simulasi Hak Akses</span>
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Pilih akun role untuk menguji perizinan:
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
                     {MOCK_USERS.map((user) => (
                       <button
                         key={user.id}
@@ -246,20 +267,20 @@ export default function Navbar({
                           onSelectUser(user);
                           setRoleDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs transition flex items-center justify-between ${
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between group cursor-pointer ${
                           currentUser.id === user.id
-                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            ? 'bg-emerald-500 text-white font-bold shadow-xs'
+                            : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200'
                         }`}
                       >
                         <div>
-                          <div className="font-semibold">{user.name}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                          <div className="font-semibold leading-snug">{user.name}</div>
+                          <div className={`text-[10px] ${currentUser.id === user.id ? 'text-emerald-100' : 'text-slate-400'}`}>
                             {user.roleLabel} • {user.unitName}
                           </div>
                         </div>
                         {currentUser.id === user.id && (
-                          <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <UserCheck className="w-4 h-4 text-white shrink-0" />
                         )}
                       </button>
                     ))}
@@ -268,25 +289,25 @@ export default function Navbar({
               )}
             </div>
 
-            {/* Admin CMS Button */}
+            {/* Portal Admin Button */}
             <button
               onClick={() => onSelectView('admin')}
-              title="Portal Admin Pengelola Tampilan (CMS)"
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs ${
+              title="Portal Admin Pengelola Tampilan & Konten"
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
                 currentView === 'admin'
                   ? 'bg-teal-700 text-white ring-2 ring-teal-400'
                   : 'bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800'
               }`}
             >
               <Settings className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-              <span>Admin CMS</span>
+              <span>Portal Admin</span>
             </button>
 
             {/* Portal Switcher CTA Button */}
             {currentView === 'public' ? (
               <button
                 onClick={() => onSelectView('pegawai')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Portal Pegawai</span>
@@ -294,7 +315,7 @@ export default function Navbar({
             ) : currentView === 'pegawai' ? (
               <button
                 onClick={() => onSelectView('public')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
               >
                 <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Lihat Area Publik</span>
@@ -302,27 +323,23 @@ export default function Navbar({
             ) : (
               <button
                 onClick={() => onSelectView('public')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition cursor-pointer"
               >
                 <Building2 className="w-3.5 h-3.5 text-teal-600" />
                 <span>Area Publik</span>
               </button>
             )}
 
-            {/* Mobile Hamburger Button */}
-            <button
-              onClick={() => {
-                if (currentView === 'public' && onOpenMobileSidebar) {
-                  onOpenMobileSidebar();
-                } else {
-                  setMobileMenuOpen(!mobileMenuOpen);
-                }
-              }}
-              className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            {/* Mobile Hamburger Button (Only on non-public views, since public view uses MobileDock) */}
+            {currentView !== 'public' && (
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
 
           </div>
         </div>

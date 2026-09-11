@@ -185,16 +185,7 @@ export default function PublicMobileSidebar({
                       >
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div>
-                        <div className="text-xs font-bold leading-tight">{item.label}</div>
-                        <div
-                          className={`text-[10px] truncate max-w-[170px] ${
-                            isActive ? 'text-emerald-100' : 'text-slate-400'
-                          }`}
-                        >
-                          {item.desc}
-                        </div>
-                      </div>
+                      <div className="text-xs font-bold leading-tight">{item.label}</div>
                     </div>
                     <ChevronRight
                       className={`w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity ${
@@ -210,7 +201,7 @@ export default function PublicMobileSidebar({
           {/* Quick External Portals */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block px-1">
-              Akses Khusus & Administrasi
+              Akses Khusus
             </span>
 
             <button
@@ -224,12 +215,7 @@ export default function PublicMobileSidebar({
                 <div className="p-1.5 rounded-lg bg-teal-600 text-white">
                   <Settings className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="text-xs font-bold">Admin CMS (Kelola Tampilan)</div>
-                  <div className="text-[10px] text-teal-700 dark:text-teal-300">
-                    Edit konten, logo, teks berjalan & docker
-                  </div>
-                </div>
+                <div className="text-xs font-bold">Portal Admin</div>
               </div>
               <ChevronRight className="w-4 h-4 text-teal-600" />
             </button>
@@ -245,12 +231,7 @@ export default function PublicMobileSidebar({
                 <div className="p-1.5 rounded-lg bg-slate-700 dark:bg-slate-600 text-white">
                   <Building2 className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="text-xs font-bold">Portal Pegawai (Internal)</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Unggah SK, verifikasi & indikator mutu
-                  </div>
-                </div>
+                <div className="text-xs font-bold">Portal Pegawai</div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
