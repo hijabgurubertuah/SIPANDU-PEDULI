@@ -1,5 +1,5 @@
-// Utility for ultra-fast local caching of uploaded logos and images (CacheStorage + LocalStorage)
-// and dynamic updating of Favicon and PWA Web App Manifest icons.
+// Lightweight utility for local caching of uploaded logos and dynamic favicon updates
+// Strictly preserves the standard PWA manifest to prevent duplicate apps or launch failures
 
 const LOCAL_STORAGE_IMG_PREFIX = 'sipandu_img_cache_';
 const CACHE_NAME = 'sipandu-img-cache-v1';
@@ -8,9 +8,8 @@ const CACHE_NAME = 'sipandu-img-cache-v1';
  * Cache an image URL locally in CacheStorage and LocalStorage (as Base64 Data URL)
  */
 export async function cacheImageLocally(url: string): Promise<string> {
-  if (!url) return '';
-  if (url.startsWith('data:')) {
-    return url;
+  if (!url || url.startsWith('data:')) {
+    return url || '';
   }
 
   // 1. Check LocalStorage cache first
@@ -21,8 +20,13 @@ export async function cacheImageLocally(url: string): Promise<string> {
   }
 
   try {
-    // 2. Fetch and convert to base64
-    const response = await fetch(url, { mode: 'cors' });
+    // 2. Fetch with abort timeout so it never hangs or lags the UI
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(url, { mode: 'cors', signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!response.ok) return url;
 
     const blob = await response.blob();
@@ -35,26 +39,27 @@ export async function cacheImageLocally(url: string): Promise<string> {
       } catch (_) {}
     }
 
-    // Convert to Base64 and store in LocalStorage for 0ms instant loading
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64data = reader.result as string;
-        try {
-          // If smaller than 1.5MB, store in localStorage for instant synchronous recall
-          if (base64data.length < 1500000) {
+    // If small enough (< 800KB), store in LocalStorage for 0ms instant display
+    if (blob.size < 800000) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          try {
             localStorage.setItem(cacheKey, base64data);
+          } catch (e) {
+            console.warn('LocalStorage limit reached:', e);
           }
-        } catch (e) {
-          console.warn('LocalStorage image cache limit reached:', e);
-        }
-        resolve(base64data);
-      };
-      reader.onerror = () => resolve(url);
-      reader.readAsDataURL(blob);
-    });
+          resolve(base64data);
+        };
+        reader.onerror = () => resolve(url);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    return url;
   } catch (err) {
-    console.warn('Could not cache image locally:', url, err);
+    // Graceful fallback to raw URL
     return url;
   }
 }
@@ -73,9 +78,10 @@ export function getSyncCachedImage(url: string | undefined): string {
 }
 
 /**
- * Dynamically updates document favicon, apple-touch-icon, and PWA manifest with the uploaded logo
+ * Dynamically updates document favicon and apple-touch-icon with the uploaded logo
+ * Note: Keeps standard /manifest.webmanifest intact to guarantee 100% stable PWA installation
  */
-export function updateDynamicFaviconAndPwa(logoUrl: string, appName: string = 'SIPANDU PEDULI') {
+export function updateDynamicFavicon(logoUrl: string) {
   if (!logoUrl) return;
 
   try {
@@ -99,51 +105,12 @@ export function updateDynamicFaviconAndPwa(logoUrl: string, appName: string = 'S
     }
     appleIcon.href = resolvedUrl;
 
-    // 3. Dynamically inject/update Web App Manifest with uploaded logo icons
-    const dynamicManifest = {
-      id: '/',
-      name: `${appName} - Puskesmas Kepanjen`,
-      short_name: 'SIPANDU',
-      description: 'Portal Digital Puskesmas Kepanjen - Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi',
-      theme_color: '#047857',
-      background_color: '#047857',
-      display: 'standalone',
-      orientation: 'portrait',
-      start_url: '/',
-      scope: '/',
-      icons: [
-        {
-          src: resolvedUrl,
-          sizes: '192x192',
-          type: resolvedUrl.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
-          purpose: 'any'
-        },
-        {
-          src: resolvedUrl,
-          sizes: '512x512',
-          type: resolvedUrl.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
-          purpose: 'any'
-        },
-        {
-          src: resolvedUrl,
-          sizes: '512x512',
-          type: resolvedUrl.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
-          purpose: 'maskable'
-        }
-      ]
-    };
-
-    const manifestBlob = new Blob([JSON.stringify(dynamicManifest)], { type: 'application/json' });
-    const manifestBlobUrl = URL.createObjectURL(manifestBlob);
-
-    let manifestLink: HTMLLinkElement | null = document.querySelector("link[rel='manifest']");
-    if (!manifestLink) {
-      manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      document.head.appendChild(manifestLink);
+    // 3. Ensure manifest link points to the official static manifest, removing any stale blob URLs
+    const manifestLink: HTMLLinkElement | null = document.querySelector("link[rel='manifest']");
+    if (manifestLink && manifestLink.href.startsWith('blob:')) {
+      manifestLink.href = '/manifest.webmanifest';
     }
-    manifestLink.href = manifestBlobUrl;
   } catch (e) {
-    console.warn('Failed to update dynamic favicon/manifest:', e);
+    console.warn('Failed to update favicon:', e);
   }
 }

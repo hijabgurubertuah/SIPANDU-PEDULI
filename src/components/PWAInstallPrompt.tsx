@@ -18,8 +18,12 @@ export default function PWAInstallPrompt({ logoUrl, appName = 'SIPANDU PEDULI' }
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if app is already running in standalone mode (installed)
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+    // Check if app is already running in standalone mode (already installed & opened as app)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+      document.referrer.includes('android-app://');
+
+    if (isStandalone) {
       setIsInstalled(true);
       return;
     }
@@ -27,11 +31,17 @@ export default function PWAInstallPrompt({ logoUrl, appName = 'SIPANDU PEDULI' }
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Check if user previously dismissed prompt
-      const dismissed = localStorage.getItem('sipandu_pwa_dismissed');
-      if (!dismissed) {
-        setShowPrompt(true);
+      
+      // Check if user recently dismissed prompt (within last 3 days)
+      const dismissedTimestamp = localStorage.getItem('sipandu_pwa_dismissed_time');
+      if (dismissedTimestamp) {
+        const elapsed = Date.now() - parseInt(dismissedTimestamp, 10);
+        if (elapsed < 3 * 24 * 60 * 60 * 1000) {
+          return;
+        }
       }
+      
+      setShowPrompt(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -49,17 +59,22 @@ export default function PWAInstallPrompt({ logoUrl, appName = 'SIPANDU PEDULI' }
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShowPrompt(false);
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowPrompt(false);
+      }
+    } catch (err) {
+      console.warn('PWA install prompt error:', err);
+    } finally {
+      setDeferredPrompt(null);
     }
-    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    localStorage.setItem('sipandu_pwa_dismissed', 'true');
+    localStorage.setItem('sipandu_pwa_dismissed_time', Date.now().toString());
   };
 
   if (isInstalled || !showPrompt || !deferredPrompt) {

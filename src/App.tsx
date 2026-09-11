@@ -41,7 +41,7 @@ import MobileDock from './components/MobileDock';
 import PublicMobileSidebar from './components/PublicMobileSidebar';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { loadAllFromFirestore } from './lib/firebase';
-import { cacheImageLocally, updateDynamicFaviconAndPwa } from './lib/imageCache';
+import { cacheImageLocally, updateDynamicFavicon } from './lib/imageCache';
 
 export default function App() {
   // Dark mode state
@@ -158,9 +158,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('sipandu_site_settings', JSON.stringify(siteSettings));
     
-    // Dynamic Favicon and PWA manifest icon sync
+    // Dynamic Favicon sync
     if (siteSettings.logoUrl) {
-      updateDynamicFaviconAndPwa(siteSettings.logoUrl, siteSettings.name);
+      updateDynamicFavicon(siteSettings.logoUrl);
       cacheImageLocally(siteSettings.logoUrl);
     }
     if (siteSettings.kabupatenLogoUrl) {
