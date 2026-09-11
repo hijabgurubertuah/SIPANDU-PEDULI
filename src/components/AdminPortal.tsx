@@ -164,6 +164,9 @@ export default function AdminPortal({
   // 2b. Mobile Dock Settings Form
   const [dockForm, setDockForm] = useState<MobileDockConfig>(dockConfig);
 
+  // Gallery Filter State
+  const [galleryFilter, setGalleryFilter] = useState<string>('all');
+
   // 3. Mitra Modal & Form
   const [isMitraModalOpen, setIsMitraModalOpen] = useState(false);
   const [editingMitraId, setEditingMitraId] = useState<string | null>(null);
@@ -1132,33 +1135,6 @@ function doGet(e) {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               
-              {/* Top Compact Header */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 uppercase tracking-wider">
-                    Pusat Kendali Admin CMS
-                  </span>
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                    Ringkasan & Status Kendali Admin
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Klik pada setiap tombol di bawah ini untuk langsung menuju ke halaman pengaturannya.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleSyncServicesToFirestore}
-                    disabled={isSavingCloud}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{isSavingCloud ? 'Menyimpan...' : 'Sinkronkan Firebase'}</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Colorful Professional Action Buttons Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
                 
@@ -1450,6 +1426,19 @@ function doGet(e) {
                   </div>
                 </button>
 
+              </div>
+
+              {/* Prominent Save Button at Bottom */}
+              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleSyncServicesToFirestore}
+                  disabled={isSavingCloud}
+                  className="px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 min-w-[220px]"
+                >
+                  <Save className="w-5 h-5" />
+                  <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan'}</span>
+                </button>
               </div>
 
             </div>
@@ -1887,14 +1876,16 @@ function doGet(e) {
           {/* ================= TAB 3B: DOCKER MOBILE (HP) ================= */}
           {activeTab === 'dock' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
+              
+              {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <Smartphone className="w-5 h-5 text-fuchsia-600" />
-                    <span>Pengaturan Docker Mobile di Bagian Bawah Layar HP</span>
+                    <span>Pengaturan Tombol Navigasi Docker Mobile</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Kustomisasi bilah navigasi bawah (Docker) yang muncul di ponsel. Tombol paling kiri bertindak sebagai pemicu menu sidebar.
+                    Kelola menu navigasi bawah ponsel. Setiap menu dapat ditambah, diubah ikon dan tujuannya, atau dihapus.
                   </p>
                 </div>
 
@@ -1902,9 +1893,17 @@ function doGet(e) {
                   <button
                     type="button"
                     onClick={handleResetDock}
-                    className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition"
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer"
                   >
                     Reset Bawaan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddDockItem}
+                    className="px-3.5 py-2 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-100 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Menu</span>
                   </button>
                   <button
                     type="button"
@@ -1913,422 +1912,291 @@ function doGet(e) {
                     className="px-5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
-                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Docker ke Firebase'}</span>
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Layout: Phone Simulator & Settings */}
-              <div className="grid lg:grid-cols-12 gap-8 items-start">
-                
-                {/* Left: Interactive Phone Mockup */}
-                <div className="lg:col-span-5 flex flex-col items-center">
-                  <div className="w-full max-w-[320px] bg-slate-900 rounded-[2.5rem] p-3 ring-8 ring-slate-800/80 shadow-2xl space-y-3">
-                    {/* Phone Top Notch */}
-                    <div className="flex justify-center items-center gap-2 pt-1 pb-2">
-                      <span className="w-3 h-3 rounded-full bg-slate-800 ring-1 ring-slate-700" />
-                      <span className="w-14 h-1.5 rounded-full bg-slate-800" />
-                    </div>
+              {/* Minimalist Options Strip */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 grid sm:grid-cols-3 gap-3">
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Aktifkan Docker HP
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={dockForm.enabled}
+                    onChange={(e) => setDockForm({ ...dockForm, enabled: e.target.checked })}
+                    className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                  />
+                </label>
 
-                    {/* Phone Screen Simulated Content */}
-                    <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl h-[460px] overflow-hidden flex flex-col justify-between relative border border-slate-700/50">
-                      
-                      {/* Simulated Header */}
-                      <div className="bg-emerald-800 text-white p-3 flex items-center justify-between text-[11px] font-bold">
-                        <div className="flex items-center gap-1.5 truncate">
-                          {siteSettings.logoUrl ? (
-                            <img src={siteSettings.logoUrl} alt="Logo" className="w-4 h-4 object-contain rounded" />
-                          ) : (
-                            <Activity className="w-3.5 h-3.5" />
-                          )}
-                          <span className="truncate">{siteSettings.name}</span>
-                        </div>
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      </div>
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Glassmorphism Blur
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={dockForm.blurEffect}
+                    onChange={(e) => setDockForm({ ...dockForm, blurEffect: e.target.checked })}
+                    className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                  />
+                </label>
 
-                      {/* Simulated Body Content */}
-                      <div className="p-3 space-y-2 flex-1 overflow-y-auto text-left">
-                        <div className="bg-emerald-600 text-white p-3 rounded-xl space-y-1 shadow-xs">
-                          <span className="text-[9px] uppercase font-black tracking-wider text-emerald-200">
-                            Pratinjau Smartphone
-                          </span>
-                          <h4 className="text-xs font-black leading-tight">
-                            Akses Cepat Satu Sentuhan (One-Link)
-                          </h4>
-                          <p className="text-[10px] text-emerald-100/90 leading-relaxed">
-                            Docker di bawah layar memudahkan jempol masyarakat menjangkau menu dan telepon darurat.
-                          </p>
-                        </div>
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Tampilkan Label Teks
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={dockForm.showLabels}
+                    onChange={(e) => setDockForm({ ...dockForm, showLabels: e.target.checked })}
+                    className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                  />
+                </label>
+              </div>
 
-                        <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
-                              UGD & Ambulans 24 Jam
-                            </span>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-rose-100 text-rose-700">
-                              Siaga
-                            </span>
-                          </div>
-                          <p className="text-[9px] text-slate-500">
-                            Hotline darurat terintegrasi langsung dengan tombol cepat.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Simulated Docker Bar at bottom */}
-                      {dockForm.enabled ? (
-                        <div className="p-2 w-full">
-                          <div
-                            className={`rounded-2xl border flex items-center justify-around py-1.5 px-1 shadow-lg ${
-                              dockForm.blurEffect
-                                ? 'bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-white/40 dark:border-slate-700/60'
-                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                            }`}
-                          >
-                            {dockForm.items
-                              .filter((item) => item.isEnabled)
-                              .map((item, idx) => (
-                                <div
-                                  key={item.id}
-                                  className={`flex flex-col items-center justify-center p-1 rounded-xl transition ${
-                                    item.isHighlight
-                                      ? 'bg-rose-600 text-white px-2 py-1 shadow-xs'
-                                      : idx === 0
-                                      ? 'text-emerald-600 font-extrabold'
-                                      : 'text-slate-600 dark:text-slate-400'
-                                  }`}
-                                >
-                                  <div className="relative">
-                                    {item.icon === 'menu' && <Menu className="w-4 h-4" />}
-                                    {item.icon === 'home' && <Activity className="w-4 h-4" />}
-                                    {item.icon === 'services' && <Building2 className="w-4 h-4" />}
-                                    {item.icon === 'document' && <FileSpreadsheet className="w-4 h-4" />}
-                                    {item.icon === 'mitra' && <Users className="w-4 h-4" />}
-                                    {item.icon === 'complaint' && <MessageCircle className="w-4 h-4" />}
-                                    {item.icon === 'phone' && <Phone className="w-4 h-4" />}
-                                    {item.icon === 'whatsapp' && <MessageCircle className="w-4 h-4 text-emerald-500" />}
-                                    {item.icon === 'emergency' && <Phone className="w-4 h-4 animate-bounce text-rose-500" />}
-                                    
-                                    {item.badge && (
-                                      <span className="absolute -top-1.5 -right-2 px-1 py-0.2 rounded-full text-[7px] font-black bg-rose-600 text-white leading-none">
-                                        {item.badge}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {dockForm.showLabels && (
-                                    <span className="text-[8px] font-bold mt-0.5 tracking-tight truncate max-w-[46px]">
-                                      {item.label}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-2 text-center text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-900/50">
-                          (Docker Dinonaktifkan)
-                        </div>
-                      )}
-
-                    </div>
-
-                    {/* Phone Home Bar */}
-                    <div className="w-24 h-1 bg-slate-700 rounded-full mx-auto" />
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-2 text-center">
-                    Pratinjau tampilan navigasi bawah di smartphone
-                  </p>
+              {/* Clean List of Dock Items (Tab Formats) */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Daftar Tab Menu Docker ({dockForm.items.length})
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Urutan navigasi dari kiri ke kanan di layar ponsel
+                  </span>
                 </div>
 
-                {/* Right: Controls & Item Configuration */}
-                <div className="lg:col-span-7 space-y-6">
-                  
-                  {/* Global Switches */}
-                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-3">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider block">
-                      Pengaturan Umum Docker
-                    </span>
-
-                    <div className="space-y-2">
-                      <label className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                          Aktifkan Docker Bawah Layar di HP
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={dockForm.enabled}
-                          onChange={(e) => setDockForm({ ...dockForm, enabled: e.target.checked })}
-                          className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                          Efek Kaca Transparan (Glassmorphism Blur)
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={dockForm.blurEffect}
-                          onChange={(e) => setDockForm({ ...dockForm, blurEffect: e.target.checked })}
-                          className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
-                        />
-                      </label>
-
-                      <label className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 cursor-pointer">
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                          Tampilkan Label Teks Bawah Ikon
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={dockForm.showLabels}
-                          onChange={(e) => setDockForm({ ...dockForm, showLabels: e.target.checked })}
-                          className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* List of Dock Items */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xs font-extrabold uppercase text-slate-700 dark:text-slate-300">
-                          Daftar Tombol Navigasi Docker ({dockForm.items.length})
-                        </h3>
-                        <p className="text-[11px] text-slate-500">
-                          Urutan dari kiri ke kanan. Tombol paling kiri dikhususkan untuk memunculkan menu sidebar samping.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddDockItem}
-                        className="px-3 py-1.5 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-100 font-bold text-xs flex items-center gap-1.5 transition"
+                <div className="grid gap-3">
+                  {dockForm.items.map((item, index) => {
+                    const isFirstMenu = item.id === 'dock-menu';
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          item.isEnabled
+                            ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60'
+                        }`}
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Tambah Tombol</span>
-                      </button>
-                    </div>
+                        {/* Tab Header */}
+                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-7 h-7 rounded-xl bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300 text-xs font-black flex items-center justify-center shrink-0">
+                              {index + 1}
+                            </span>
 
-                    <div className="space-y-3">
-                      {dockForm.items.map((item, index) => {
-                        const isFirstMenu = item.id === 'dock-menu';
-                        return (
-                          <div
-                            key={item.id}
-                            className={`p-4 rounded-2xl border transition-all ${
-                              item.isEnabled
-                                ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xs'
-                                : 'bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300 text-[11px] font-black flex items-center justify-center">
-                                  {index + 1}
-                                </span>
-                                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                                  {isFirstMenu ? 'Tombol Paling Kiri: Pemicu Menu Sidebar' : item.label || 'Tombol Akses'}
-                                </span>
+                            {/* Icon Visual Badge */}
+                            <div className={`p-1.5 rounded-lg ${item.isHighlight ? 'bg-rose-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-fuchsia-600 dark:text-fuchsia-400'}`}>
+                              {item.icon === 'menu' && <Menu className="w-4 h-4" />}
+                              {item.icon === 'home' && <Activity className="w-4 h-4" />}
+                              {item.icon === 'services' && <Building2 className="w-4 h-4" />}
+                              {item.icon === 'document' && <FileSpreadsheet className="w-4 h-4" />}
+                              {item.icon === 'mitra' && <Users className="w-4 h-4" />}
+                              {item.icon === 'complaint' && <MessageCircle className="w-4 h-4" />}
+                              {item.icon === 'phone' && <Phone className="w-4 h-4" />}
+                              {item.icon === 'whatsapp' && <MessageCircle className="w-4 h-4 text-emerald-500" />}
+                              {item.icon === 'emergency' && <Phone className="w-4 h-4 text-rose-500" />}
+                            </div>
+
+                            <div>
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>{isFirstMenu ? 'Pemicu Sidebar Mobile' : item.label || 'Tombol Menu'}</span>
                                 {item.isHighlight && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-100 text-rose-700 uppercase">
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-100 text-rose-700 uppercase">
                                     Highlight Merah
                                   </span>
                                 )}
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
-                                  <span>{item.isEnabled ? 'Aktif' : 'Mati'}</span>
-                                  <input
-                                    type="checkbox"
-                                    checked={item.isEnabled}
-                                    onChange={() => handleToggleDockItem(item.id)}
-                                    className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
-                                  />
-                                </label>
-
-                                {!isFirstMenu && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteDockItem(item.id)}
-                                    title="Hapus Tombol"
-                                    className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Inputs Grid */}
-                            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                              {/* Label */}
-                              <div>
-                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                                  Label Tombol:
-                                </label>
-                                <input
-                                  type="text"
-                                  value={item.label}
-                                  onChange={(e) => handleUpdateDockItem(item.id, { label: e.target.value })}
-                                  placeholder="Contoh: Beranda"
-                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                />
-                              </div>
-
-                              {/* Icon Dropdown */}
-                              <div>
-                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                                  Pilihan Ikon:
-                                </label>
-                                <select
-                                  value={item.icon}
-                                  onChange={(e) => handleUpdateDockItem(item.id, { icon: e.target.value as any })}
-                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                >
-                                  <option value="menu">Menu Hamburger (Garis 3)</option>
-                                  <option value="home">Beranda (Home)</option>
-                                  <option value="services">Layanan / Poli</option>
-                                  <option value="document">Dokumen / SPO</option>
-                                  <option value="mitra">Mitra Pelayanan</option>
-                                  <option value="complaint">Pengaduan Warga</option>
-                                  <option value="phone">Telepon UGD</option>
-                                  <option value="whatsapp">Chat WhatsApp</option>
-                                  <option value="emergency">Panggilan Darurat (Sirene)</option>
-                                </select>
-                              </div>
-
-                              {/* Action Type */}
-                              <div>
-                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                                  Tipe Aksi:
-                                </label>
-                                <select
-                                  value={item.actionType}
-                                  onChange={(e) => handleUpdateDockItem(item.id, { actionType: e.target.value as any })}
-                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                >
-                                  <option value="sidebar">Buka Menu Sidebar Samping</option>
-                                  <option value="tab">Pindah Tab Halaman Publik</option>
-                                  <option value="url">Buka Tautan Link Web (URL)</option>
-                                  <option value="tel">Panggil Telepon (Tel:)</option>
-                                </select>
-                              </div>
-
-                              {/* Target */}
-                              <div>
-                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                                  Target / Nilai Aksi:
-                                </label>
-                                {item.actionType === 'tab' ? (
-                                  <select
-                                    value={item.target || 'beranda'}
-                                    onChange={(e) => handleUpdateDockItem(item.id, { target: e.target.value })}
-                                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                  >
-                                    <option value="beranda">Tab Beranda</option>
-                                    <option value="layanan">Tab Poliklinik & Layanan</option>
-                                    <option value="dokumen">Tab Informasi Publik & SPO</option>
-                                    <option value="mitra">Tab Mitra Faskes</option>
-                                    <option value="pengaduan">Tab Suara Warga / Aduan</option>
-                                  </select>
-                                ) : item.actionType === 'sidebar' ? (
-                                  <input
-                                    type="text"
-                                    disabled
-                                    value="Membuka Sidebar Mobile"
-                                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-400 italic"
-                                  />
-                                ) : (
-                                  <input
-                                    type="text"
-                                    value={item.target || ''}
-                                    onChange={(e) => handleUpdateDockItem(item.id, { target: e.target.value })}
-                                    placeholder={item.actionType === 'tel' ? '0341395990' : 'https://...'}
-                                    className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                  />
-                                )}
-                              </div>
-
-                              {/* Badge text */}
-                              <div>
-                                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                                  Label Badge (Opsional):
-                                </label>
-                                <input
-                                  type="text"
-                                  value={item.badge || ''}
-                                  onChange={(e) => handleUpdateDockItem(item.id, { badge: e.target.value })}
-                                  placeholder="Contoh: 24 Jam / Baru"
-                                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
-                                />
-                              </div>
-
-                              {/* Highlight Toggle */}
-                              <div className="flex items-end pb-1">
-                                <label className="flex items-center gap-2 text-[11px] font-bold text-rose-600 dark:text-rose-400 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={!!item.isHighlight}
-                                    onChange={(e) => handleUpdateDockItem(item.id, { isHighlight: e.target.checked })}
-                                    className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
-                                  />
-                                  <span>Tombol Menonjol (Merah)</span>
-                                </label>
-                              </div>
+                              </h4>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
 
-                  {/* Save Footer Bar */}
-                  <div className="pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={handleAddDockItem}
-                      className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-2 transition"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Tambah Tombol Baru</span>
-                    </button>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                              <span>{item.isEnabled ? 'Aktif' : 'Nonaktif'}</span>
+                              <input
+                                type="checkbox"
+                                checked={item.isEnabled}
+                                onChange={() => handleToggleDockItem(item.id)}
+                                className="w-4 h-4 accent-fuchsia-600 rounded cursor-pointer"
+                              />
+                            </label>
 
-                    <button
-                      type="button"
-                      onClick={handleSaveDock}
-                      disabled={isSavingCloud}
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Perubahan Docker ke Firebase'}</span>
-                    </button>
-                  </div>
+                            {!isFirstMenu && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDockItem(item.id)}
+                                title="Hapus Menu Docker Ini"
+                                className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
 
+                        {/* Config Form Grid */}
+                        <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                          {/* Label */}
+                          <div className="md:col-span-1">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase">
+                              Label Teks
+                            </label>
+                            <input
+                              type="text"
+                              value={item.label}
+                              onChange={(e) => handleUpdateDockItem(item.id, { label: e.target.value })}
+                              placeholder="Label Menu"
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                            />
+                          </div>
+
+                          {/* Icon Selector */}
+                          <div className="md:col-span-1">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase">
+                              Pilihan Ikon
+                            </label>
+                            <select
+                              value={item.icon}
+                              onChange={(e) => handleUpdateDockItem(item.id, { icon: e.target.value as any })}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                            >
+                              <option value="menu">Garis 3 (Menu)</option>
+                              <option value="home">Beranda (Home)</option>
+                              <option value="services">Poli & Layanan</option>
+                              <option value="document">Informasi / SPO</option>
+                              <option value="mitra">Mitra Faskes</option>
+                              <option value="complaint">Aduan Warga</option>
+                              <option value="phone">Telepon UGD</option>
+                              <option value="whatsapp">Chat WhatsApp</option>
+                              <option value="emergency">Panggilan Emergency</option>
+                            </select>
+                          </div>
+
+                          {/* Action Type */}
+                          <div className="md:col-span-1">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase">
+                              Tipe Aksi
+                            </label>
+                            <select
+                              value={item.actionType}
+                              onChange={(e) => handleUpdateDockItem(item.id, { actionType: e.target.value as any })}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                            >
+                              <option value="sidebar">Buka Sidebar</option>
+                              <option value="tab">Pindah Tab Publik</option>
+                              <option value="url">Buka Link URL</option>
+                              <option value="tel">Panggil Telepon</option>
+                            </select>
+                          </div>
+
+                          {/* Target */}
+                          <div className="md:col-span-1">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase">
+                              Target Aksi
+                            </label>
+                            {item.actionType === 'tab' ? (
+                              <select
+                                value={item.target || 'beranda'}
+                                onChange={(e) => handleUpdateDockItem(item.id, { target: e.target.value })}
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                              >
+                                <option value="beranda">Tab Beranda</option>
+                                <option value="layanan">Tab Poliklinik & Layanan</option>
+                                <option value="dokumen">Tab Informasi Publik & SPO</option>
+                                <option value="mitra">Tab Mitra Faskes</option>
+                                <option value="pengaduan">Tab Suara Warga / Aduan</option>
+                              </select>
+                            ) : item.actionType === 'sidebar' ? (
+                              <input
+                                type="text"
+                                disabled
+                                value="Buka Sidebar"
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-400 italic"
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={item.target || ''}
+                                onChange={(e) => handleUpdateDockItem(item.id, { target: e.target.value })}
+                                placeholder={item.actionType === 'tel' ? '0341395990' : 'https://...'}
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                              />
+                            )}
+                          </div>
+
+                          {/* Badge / Highlight */}
+                          <div className="md:col-span-1 flex items-center gap-2 pt-4 sm:pt-0">
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={item.badge || ''}
+                                onChange={(e) => handleUpdateDockItem(item.id, { badge: e.target.value })}
+                                placeholder="Badge (e.g. 24h)"
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                              />
+                            </div>
+                            <label className="flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 cursor-pointer shrink-0" title="Tombol Menonjol Merah">
+                              <input
+                                type="checkbox"
+                                checked={!!item.isHighlight}
+                                onChange={(e) => handleUpdateDockItem(item.id, { isHighlight: e.target.checked })}
+                                className="w-3.5 h-3.5 accent-rose-600 rounded cursor-pointer"
+                              />
+                              <span>Merah</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-
               </div>
+
+              {/* Bottom Actions */}
+              <div className="pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleAddDockItem}
+                  className="px-4 py-2.5 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-700 dark:text-fuchsia-300 hover:bg-fuchsia-100 font-bold text-xs flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Tab Menu Docker Baru</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveDock}
+                  disabled={isSavingCloud}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-700 hover:to-pink-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Docker ke Firebase'}</span>
+                </button>
+              </div>
+
             </div>
           )}
 
           {/* ================= TAB 4: GALERI DRIVE & THUMBNAIL ORGANIZER ================= */}
           {activeTab === 'gallery' && (
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
+              
+              {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <HardDrive className="w-5 h-5 text-indigo-600" />
-                    <span>Galeri Penampil Isi Drive & Thumbnail Organizer</span>
+                    <span>Galeri Drive & Thumbnail Organizer</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Lihat foto Google Drive langsung dengan thumbnail visual, kelola berkas, atau jadikan logo aktif
+                    Kelola gambar Google Drive dan thumbnail visual secara efisien.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                    {driveGallery.length} Foto Terdaftar
+                    {driveGallery.length} Berkas
                   </span>
                   <button
                     type="button"
@@ -2337,67 +2205,56 @@ function doGet(e) {
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" />
-                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Galeri ke Firebase'}</span>
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Upload Form to Drive */}
-              <div className="p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 space-y-4">
-                <div className="flex items-center justify-between">
+              {/* Minimalist Upload Bar */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
                   <div className="flex items-center gap-2">
-                    <UploadCloud className="w-5 h-5 text-indigo-600" />
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      Unggah Gambar ke Google Drive:
-                    </span>
+                    <UploadCloud className="w-4 h-4 text-indigo-600" />
+                    <span>Unggah Berkas Baru:</span>
                   </div>
                   {appScriptUrl ? (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       Google Apps Script Aktif
                     </span>
                   ) : (
-                    <span className="text-[10px] text-slate-400">
-                      Mendukung unggah lokal & Google Drive
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      Penyimpanan lokal & Drive
                     </span>
                   )}
                 </div>
 
-                <form onSubmit={handleAddDriveFile} className="grid md:grid-cols-12 gap-3">
-                  <div className="md:col-span-4">
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                      Pilih Berkas Gambar:
-                    </label>
+                <form onSubmit={handleAddDriveFile} className="grid sm:grid-cols-12 gap-3 text-xs">
+                  <div className="sm:col-span-4">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleFileUploadSim}
-                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
                     />
                   </div>
 
-                  <div className="md:col-span-3">
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                      Nama Berkas:
-                    </label>
+                  <div className="sm:col-span-3">
                     <input
                       type="text"
                       value={uploadFileName}
                       onChange={(e) => setUploadFileName(e.target.value)}
-                      placeholder="Logo-Puskesmas-2026.png"
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
+                      placeholder="Nama Berkas (e.g. Logo.png)"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
                       required
                     />
                   </div>
 
-                  <div className="md:col-span-3">
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                      Kategori:
-                    </label>
+                  <div className="sm:col-span-3">
                     <select
                       value={uploadCategory}
                       onChange={(e) => setUploadCategory(e.target.value as any)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
                     >
                       <option value="logo">Logo Puskesmas</option>
                       <option value="banner">Banner & Header</option>
@@ -2407,17 +2264,14 @@ function doGet(e) {
                     </select>
                   </div>
 
-                  <div className="md:col-span-2 flex items-end">
+                  <div className="sm:col-span-2">
                     <button
                       type="submit"
                       disabled={isUploadingToDrive}
-                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       {isUploadingToDrive ? (
-                        <>
-                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Mengunggah...</span>
-                        </>
+                        <span>Unggah...</span>
                       ) : (
                         <>
                           <UploadCloud className="w-3.5 h-3.5" />
@@ -2429,93 +2283,122 @@ function doGet(e) {
                 </form>
               </div>
 
+              {/* Minimalist Category Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                {[
+                  { id: 'all', label: 'Semua', count: driveGallery.length },
+                  { id: 'logo', label: 'Logo', count: driveGallery.filter(i => i.category === 'logo').length },
+                  { id: 'banner', label: 'Banner', count: driveGallery.filter(i => i.category === 'banner').length },
+                  { id: 'dokumentasi', label: 'Dokumentasi', count: driveGallery.filter(i => i.category === 'dokumentasi').length },
+                  { id: 'berkas', label: 'Berkas', count: driveGallery.filter(i => i.category === 'berkas').length },
+                  { id: 'lainnya', label: 'Lainnya', count: driveGallery.filter(i => i.category === 'lainnya').length },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setGalleryFilter(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl font-bold transition whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                      galleryFilter === cat.id
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      galleryFilter === cat.id ? 'bg-indigo-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                    }`}>
+                      {cat.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               {/* Visual Thumbnail Gallery Grid */}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {driveGallery.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col justify-between hover:border-indigo-500 transition-all duration-200 shadow-xs"
-                  >
-                    {/* Thumbnail Image Container */}
-                    <div className="relative aspect-video w-full bg-slate-200 dark:bg-slate-900 overflow-hidden">
-                      <img
-                        src={item.thumbnailUrl}
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                        onError={(e) => {
-                          // Fallback to placeholder if broken
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&auto=format&fit=crop&q=80';
-                        }}
-                      />
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs">
-                        {item.category}
-                      </span>
-                      <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono bg-black/70 text-white">
-                        {item.size}
-                      </span>
-                    </div>
-
-                    {/* Metadata & Actions */}
-                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1" title={item.name}>
-                          {item.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          Diunggah: {item.uploadedAt}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700/80 flex flex-wrap items-center gap-1.5">
-                        
-                        {/* Set As Logo Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleSetAsActiveLogo(item)}
-                          className="flex-1 py-1.5 px-2 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold rounded-lg transition text-center truncate"
-                        >
-                          Set Logo
-                        </button>
-
-                        {/* Open in Drive */}
-                        <a
-                          href={item.driveUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-indigo-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition"
-                          title="Buka File di Google Drive"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-
-                        {/* Copy Link */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(item.thumbnailUrl);
-                            showToast('URL Gambar berhasil disalin!');
+                {driveGallery
+                  .filter(item => galleryFilter === 'all' || item.category === galleryFilter)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="group bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden flex flex-col justify-between hover:border-indigo-500 transition-all duration-200 shadow-xs"
+                    >
+                      {/* Thumbnail Image Container */}
+                      <div className="relative aspect-video w-full bg-slate-200 dark:bg-slate-900 overflow-hidden">
+                        <img
+                          src={item.thumbnailUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&auto=format&fit=crop&q=80';
                           }}
-                          className="p-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-indigo-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition"
-                          title="Salin Link Thumbnail"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black/60 text-white backdrop-blur-xs">
+                          {item.category}
+                        </span>
+                        <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono bg-black/70 text-white">
+                          {item.size}
+                        </span>
+                      </div>
 
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteDriveFile(item.id)}
-                          className="p-1.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition"
-                          title="Hapus dari Galeri"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      {/* Metadata & Actions */}
+                      <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate" title={item.name}>
+                            {item.name}
+                          </h4>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {item.uploadedAt}
+                          </p>
+                        </div>
 
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700/80 flex items-center gap-1.5">
+                          {/* Set As Logo Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleSetAsActiveLogo(item)}
+                            className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition text-center truncate cursor-pointer"
+                          >
+                            Set Logo
+                          </button>
+
+                          {/* Open in Drive */}
+                          <a
+                            href={item.driveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-indigo-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition"
+                            title="Buka File di Google Drive"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+
+                          {/* Copy Link */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(item.thumbnailUrl);
+                              showToast('URL Gambar berhasil disalin!');
+                            }}
+                            className="p-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-indigo-600 hover:text-white rounded-lg text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                            title="Salin Link Thumbnail"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDriveFile(item.id)}
+                            className="p-1.5 bg-rose-50 dark:bg-rose-950/40 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition cursor-pointer"
+                            title="Hapus dari Galeri"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}
