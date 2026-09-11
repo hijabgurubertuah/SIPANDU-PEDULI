@@ -1,4 +1,4 @@
-import { Activity, MapPin, Phone, Mail, Instagram, ShieldCheck, HeartPulse, Settings } from 'lucide-react';
+import { Activity, MapPin, Phone, Mail, Instagram, ShieldCheck, HeartPulse } from 'lucide-react';
 import { SiteSettings } from '../types';
 
 interface FooterProps {
@@ -202,19 +202,11 @@ export default function Footer({ onSelectTab, onSelectView, siteSettings }: Foot
               </div>
             </div>
 
-            <div className="pt-2 flex flex-col gap-2">
+            <div className="pt-2">
               <div className="p-2.5 bg-rose-950/40 border border-rose-900/60 rounded-xl text-[11px] text-rose-200 flex items-center gap-2">
                 <HeartPulse className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>UGD & Bersalin Buka 24 Jam Non-Stop</span>
               </div>
-
-              <button
-                onClick={() => onSelectView('admin')}
-                className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-bold flex items-center justify-center gap-2 transition border border-slate-700 hover:border-teal-500"
-              >
-                <Settings className="w-3.5 h-3.5 text-teal-400" />
-                <span>Portal Pengelola Tampilan (Admin CMS)</span>
-              </button>
             </div>
           </div>
 

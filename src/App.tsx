@@ -413,18 +413,20 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <Footer
-        onSelectTab={(tab) => {
-          setActivePublicTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onSelectView={(v) => {
-          setCurrentView(v);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        siteSettings={siteSettings}
-      />
+      {/* Footer (Hidden on Admin Portal) */}
+      {currentView !== 'admin' && (
+        <Footer
+          onSelectTab={(tab) => {
+            setActivePublicTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onSelectView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          siteSettings={siteSettings}
+        />
+      )}
 
       {/* Mobile Floating Dock (At the bottom of screen on Mobile) */}
       {currentView === 'public' && (
