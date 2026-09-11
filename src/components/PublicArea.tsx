@@ -517,8 +517,8 @@ export default function PublicArea({
         </div>
       )}
 
-      {/* Tab 2: PELAYANAN */}
-      {activeTab === 'pelayanan' && (
+      {/* Tab 2: PELAYANAN & LAYANAN POLIKLINIK */}
+      {(activeTab === 'pelayanan' || activeTab === 'layanan') && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-2">
@@ -540,119 +540,125 @@ export default function PublicArea({
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
                 Pilih Poliklinik / Fasilitas:
               </span>
-              {services.map((srv) => (
-                <div
-                  key={srv.id}
-                  onClick={() => setSelectedService(srv)}
-                  className={`p-4 rounded-xl border cursor-pointer transition ${
-                    selectedService?.id === srv.id
-                      ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {srv.name}
-                    </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                      {srv.category}
-                    </span>
+              {services.map((srv) => {
+                const isSelected = (selectedService?.id || services[0]?.id) === srv.id;
+                return (
+                  <div
+                    key={srv.id}
+                    onClick={() => setSelectedService(srv)}
+                    className={`p-4 rounded-xl border cursor-pointer transition ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        {srv.name}
+                      </span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                        {srv.category}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{srv.schedule}</span>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">
-                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{srv.schedule}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Right Detail Card for Selected Service */}
             <div className="lg:col-span-7">
-              {selectedService ? (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-md space-y-6">
-                  
-                  <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-                    <div>
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-                        {selectedService.category} • {selectedService.room}
+              {(() => {
+                const activeSrv = selectedService || services[0];
+                if (!activeSrv) return null;
+                return (
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-md space-y-6">
+                    
+                    <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
+                      <div>
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                          {activeSrv.category} • {activeSrv.room}
+                        </span>
+                        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
+                          {activeSrv.name}
+                        </h2>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                          {activeSrv.description}
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                        {activeSrv.bpjsCovered ? 'Gratis BPJS' : 'Umum'}
                       </span>
-                      <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1">
-                        {selectedService.name}
-                      </h2>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                        {selectedService.description}
-                      </p>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
-                      {selectedService.bpjsCovered ? 'Gratis BPJS' : 'Umum'}
-                    </span>
-                  </div>
 
-                  {/* Doctor & Schedule */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Waktu Pelayanan:</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedService.schedule}</span>
+                    {/* Doctor & Schedule */}
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Waktu Pelayanan:</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{activeSrv.schedule}</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Penanggung Jawab Medis:</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{activeSrv.doctorPic}</span>
+                      </div>
                     </div>
-                    <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800">
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Penanggung Jawab Medis:</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedService.doctorPic}</span>
-                    </div>
-                  </div>
 
-                  {/* Requirements */}
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Persyaratan Pendaftaran & Berkas:</span>
-                    </h3>
-                    <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                      {selectedService.requirements.map((req, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                          <span>{req}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Service Flow */}
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-blue-600" />
-                      <span>Alur Tahapan Pelayanan Pasien:</span>
-                    </h3>
-                    <div className="space-y-2">
-                      {selectedService.flow.map((step, idx) => (
-                        <div key={idx} className="flex items-center gap-3 text-xs">
-                          <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center shrink-0 text-[11px]">
-                            {idx + 1}
-                          </div>
-                          <span className="text-slate-700 dark:text-slate-300">{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tariff & BPJS guarantee */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex items-start gap-3">
-                    <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                    {/* Requirements */}
                     <div>
-                      <strong className="block text-slate-900 dark:text-white">Ketentuan Tarif & Retribusi Daerah:</strong>
-                      <p className="text-slate-600 dark:text-slate-300 mt-0.5">{selectedService.tariff}</p>
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Persyaratan Pendaftaran & Berkas:</span>
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                        {(activeSrv.requirements || []).map((req, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                            <span>{req}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
 
-                  {/* Maklumat Pelayanan */}
-                  <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200">
-                    <strong className="block font-bold mb-1">Maklumat Standar Pelayanan:</strong>
-                    &quot;{PUSKESMAS_INFO.maklumat}&quot;
-                  </div>
+                    {/* Service Flow */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-blue-600" />
+                        <span>Alur Tahapan Pelayanan Pasien:</span>
+                      </h3>
+                      <div className="space-y-2">
+                        {(activeSrv.flow || []).map((step, idx) => (
+                          <div key={idx} className="flex items-center gap-3 text-xs">
+                            <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center shrink-0 text-[11px]">
+                              {idx + 1}
+                            </div>
+                            <span className="text-slate-700 dark:text-slate-300">{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-                </div>
-              ) : null}
+                    {/* Tariff & BPJS guarantee */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex items-start gap-3">
+                      <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div>
+                        <strong className="block text-slate-900 dark:text-white">Ketentuan Tarif & Retribusi Daerah:</strong>
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5">{activeSrv.tariff}</p>
+                      </div>
+                    </div>
+
+                    {/* Maklumat Pelayanan */}
+                    <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200">
+                      <strong className="block font-bold mb-1">Maklumat Standar Pelayanan:</strong>
+                      &quot;{PUSKESMAS_INFO.maklumat}&quot;
+                    </div>
+
+                  </div>
+                );
+              })()}
             </div>
-
           </div>
         </div>
       )}
@@ -867,7 +873,7 @@ export default function PublicArea({
       )}
 
       {/* Tab 5: DATA & MONITORING (PUBLIK) */}
-      {activeTab === 'monitoring' && (
+      {(activeTab === 'monitoring' || activeTab === 'dokumen') && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-2">

@@ -200,6 +200,23 @@ export default function AdminPortal({
   const [driveFolderId, setDriveFolderId] = useState(() => localStorage.getItem('sipandu_drive_folder_id') || '');
   const [copiedScript, setCopiedScript] = useState(false);
 
+  // 7. Service Modal State
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [serviceForm, setServiceForm] = useState<ServiceItem>({
+    id: '',
+    name: '',
+    category: 'Pemeriksaan Umum',
+    schedule: 'Senin - Sabtu: 07.30 - 14.00 WIB',
+    description: '',
+    requirements: ['Kartu Identitas (KTP / KK)', 'Kartu BPJS Kesehatan (jika ada)'],
+    flow: ['Ambil Nomor Antrean', 'Pendaftaran di Loket', 'Pemeriksaan di Poli', 'Pengambilan Obat / Kasir'],
+    tariff: 'Gratis (Peserta BPJS) / Retribusi Rp 10.000 (Umum)',
+    room: 'Lantai 1 - Ruang Poli',
+    doctorPic: 'dr. Petugas Medis',
+    bpjsCovered: true
+  });
+
   // ----------------------------------------------------
   // AUTHENTICATION HANDLERS
   // ----------------------------------------------------
@@ -422,6 +439,77 @@ export default function AdminPortal({
     if (window.confirm(`Yakin ingin menghapus mitra "${name}"?`)) {
       onUpdateMitraList(mitraList.filter((m) => m.id !== id));
       showToast('Mitra pelayanan telah dihapus');
+    }
+  };
+
+  // Services & Poliklinik Handlers
+  const handleOpenAddService = () => {
+    setEditingServiceId(null);
+    setServiceForm({
+      id: `svc-${Date.now()}`,
+      name: '',
+      category: 'Pemeriksaan Umum',
+      schedule: 'Senin - Sabtu: 07.30 - 14.00 WIB',
+      description: '',
+      requirements: ['Kartu Identitas (KTP / KK)', 'Kartu BPJS Kesehatan (jika ada)'],
+      flow: ['Ambil Nomor Antrean', 'Pendaftaran di Loket', 'Pemeriksaan di Poli', 'Pengambilan Obat / Kasir'],
+      tariff: 'Gratis (Peserta BPJS) / Retribusi Rp 10.000 (Umum)',
+      room: 'Lantai 1 - Ruang Poli',
+      doctorPic: 'dr. Petugas Medis',
+      bpjsCovered: true
+    });
+    setIsServiceModalOpen(true);
+  };
+
+  const handleOpenEditService = (svc: ServiceItem) => {
+    setEditingServiceId(svc.id);
+    setServiceForm({ ...svc });
+    setIsServiceModalOpen(true);
+  };
+
+  const handleSaveService = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!serviceForm.name.trim()) {
+      showToast('Nama poliklinik tidak boleh kosong!');
+      return;
+    }
+
+    let updatedList: ServiceItem[];
+    if (editingServiceId) {
+      updatedList = services.map((s) => (s.id === editingServiceId ? serviceForm : s));
+      showToast(`Data poliklinik "${serviceForm.name}" berhasil diubah!`);
+    } else {
+      updatedList = [...services, serviceForm];
+      showToast(`Poliklinik baru "${serviceForm.name}" berhasil ditambahkan!`);
+    }
+
+    onUpdateServices(updatedList);
+    setIsServiceModalOpen(false);
+
+    setIsSavingCloud(true);
+    try {
+      await saveServicesToFirestore(updatedList);
+    } catch (err) {
+      // offline silent
+    } finally {
+      setIsSavingCloud(false);
+    }
+  };
+
+  const handleDeleteService = async (id: string, name: string) => {
+    if (window.confirm(`Yakin ingin menghapus poliklinik "${name}"?`)) {
+      const updatedList = services.filter((s) => s.id !== id);
+      onUpdateServices(updatedList);
+      showToast(`Poliklinik "${name}" telah dihapus.`);
+
+      setIsSavingCloud(true);
+      try {
+        await saveServicesToFirestore(updatedList);
+      } catch (err) {
+        // offline silent
+      } finally {
+        setIsSavingCloud(false);
+      }
     }
   };
 
@@ -1044,234 +1132,323 @@ function doGet(e) {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               
-              {/* Top Banner Overview */}
-              <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 rounded-3xl p-6 sm:p-8 text-white shadow-lg space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black bg-white/20 uppercase tracking-wider backdrop-blur-xs">
-                      Pusat Kendali Tampilan Web
-                    </span>
-                    <h2 className="text-xl sm:text-2xl font-black">
-                      Selamat Datang di Portal Admin CMS
-                    </h2>
-                    <p className="text-xs sm:text-sm text-emerald-100 max-w-xl leading-relaxed">
-                      Kelola logo resmi, teks berjalan, daftar mitra pelayanan kesehatan, dokumen, dan tautan sistem secara real-time tanpa perlu mengubah kode sumber.
-                    </p>
-                  </div>
-                  
+              {/* Top Compact Header */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 uppercase tracking-wider">
+                    Pusat Kendali Admin CMS
+                  </span>
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                    Ringkasan & Status Kendali Admin
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Klik pada setiap tombol di bawah ini untuk langsung menuju ke halaman pengaturannya.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={() => setActiveTab('identity')}
-                    className="px-5 py-3 rounded-2xl bg-white text-emerald-900 font-extrabold text-xs shadow-md hover:bg-emerald-50 transition shrink-0"
+                    type="button"
+                    onClick={handleSyncServicesToFirestore}
+                    disabled={isSavingCloud}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
-                    Mulai Ubah Tampilan &rarr;
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Sinkronkan Firebase'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* Status Metrics Cards */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Colorful Professional Action Buttons Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
                 
-                {/* Logo Status */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-slate-400">Logo Puskesmas</span>
-                    <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center">
-                      <Image className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white truncate">
-                    {siteSettings.logoUrl ? 'Logo Kustom Aktif' : 'Default Puskesmas'}
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('identity')}
-                    className="text-[11px] font-bold text-teal-600 hover:underline"
-                  >
-                    Atur Logo &rarr;
-                  </button>
-                </div>
-
-                {/* Marquee Status */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-slate-400">Teks Berjalan</span>
-                    <div className="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-600 flex items-center justify-center">
-                      <Type className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${marqueeSettings.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                    <span>{marqueeSettings.enabled ? 'Aktif' : 'Non-Aktif'}</span>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('marquee')}
-                    className="text-[11px] font-bold text-cyan-600 hover:underline"
-                  >
-                    Atur Running Text &rarr;
-                  </button>
-                </div>
-
-                {/* Docker Mobile Status */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-slate-400">Docker Mobile HP</span>
-                    <div className="w-7 h-7 rounded-lg bg-fuchsia-500/10 text-fuchsia-600 flex items-center justify-center">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${dockConfig.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                    <span>{dockConfig.enabled ? `${dockConfig.items.filter(i => i.isEnabled).length} Tombol` : 'Non-Aktif'}</span>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('dock')}
-                    className="text-[11px] font-bold text-fuchsia-600 hover:underline"
-                  >
-                    Atur Docker HP &rarr;
-                  </button>
-                </div>
-
-                {/* Mitra Count */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-slate-400">Mitra Pelayanan</span>
-                    <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                      <Users className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white">
-                    {mitraList.length} Faskes
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('mitra')}
-                    className="text-[11px] font-bold text-amber-600 hover:underline"
-                  >
-                    Kelola Mitra &rarr;
-                  </button>
-                </div>
-
-                {/* Drive Files */}
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase text-slate-400">Berkas di Drive</span>
-                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
-                      <HardDrive className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white">
-                    {driveGallery.length} Berkas
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('gallery')}
-                    className="text-[11px] font-bold text-indigo-600 hover:underline"
-                  >
-                    Buka Galeri Drive &rarr;
-                  </button>
-                </div>
-
-              </div>
-
-              {/* Action Cards Grid */}
-              <div className="grid md:grid-cols-2 gap-6">
-                
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-teal-500/10 text-teal-600">
+                {/* 1. Logo Puskesmas */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('identity')}
+                  className="p-4 rounded-2xl border border-teal-200 dark:border-teal-900/60 bg-gradient-to-br from-teal-50 to-emerald-50/50 dark:from-teal-950/40 dark:to-emerald-950/20 hover:from-teal-100 hover:to-emerald-100 dark:hover:from-teal-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                       <Image className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Identitas, Nama & Logo
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Sesuaikan nama puskesmas, alamat, visi misi, dan logo
-                      </p>
-                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-teal-100 text-teal-800 dark:bg-teal-900/80 dark:text-teal-200">
+                      {siteSettings.logoUrl ? 'Kustom' : 'Default'}
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Logo yang diunggah akan otomatis terpasang pada navbar, footer, surat tanda terima aduan, serta tombol floating menu di smartphone.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('identity')}
-                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                  >
-                    Buka Pengaturan Identitas
-                  </button>
-                </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-teal-600 transition-colors">
+                      Logo Puskesmas
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Atur logo & identitas web
+                    </p>
+                  </div>
+                </button>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-600">
+                {/* 2. Running Text (Marquee) */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('marquee')}
+                  className="p-4 rounded-2xl border border-cyan-200 dark:border-cyan-900/60 bg-gradient-to-br from-cyan-50 to-blue-50/50 dark:from-cyan-950/40 dark:to-blue-950/20 hover:from-cyan-100 hover:to-blue-100 dark:hover:from-cyan-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                       <Type className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Teks Berjalan & Pengumuman Atas
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Running text untuk informasi mendesak / jadwal posyandu
-                      </p>
-                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${marqueeSettings.enabled ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                      {marqueeSettings.enabled ? 'Aktif' : 'Off'}
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Teks berjalan muncul di bagian paling atas halaman web, memudahkan penyampaian pengumuman imunisasi, CKG, atau perubahan jadwal poli.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('marquee')}
-                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                  >
-                    Atur Teks Berjalan
-                  </button>
-                </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-cyan-600 transition-colors">
+                      Running Text
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Teks pengumuman berjalan
+                    </p>
+                  </div>
+                </button>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600">
+                {/* 3. Docker Mobile HP */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('dock')}
+                  className="p-4 rounded-2xl border border-fuchsia-200 dark:border-fuchsia-900/60 bg-gradient-to-br from-fuchsia-50 to-pink-50/50 dark:from-fuchsia-950/40 dark:to-pink-950/20 hover:from-fuchsia-100 hover:to-pink-100 dark:hover:from-fuchsia-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-fuchsia-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/80 dark:text-fuchsia-200">
+                      {dockConfig.enabled ? `${dockConfig.items.filter(i => i.isEnabled).length} Tombol` : 'Off'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-fuchsia-600 transition-colors">
+                      Docker Mobile HP
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Navigasi bawah smartphone
+                    </p>
+                  </div>
+                </button>
+
+                {/* 4. Poliklinik & Layanan */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('services')}
+                  className="p-4 rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/20 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <HeartPulse className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 dark:bg-blue-900/80 dark:text-blue-200">
+                      {services.length} Poli
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                      Jadwal & Layanan Poli
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Ubah jadwal & dokter poli
+                    </p>
+                  </div>
+                </button>
+
+                {/* 5. Mitra Pelayanan */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('mitra')}
+                  className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/40 dark:to-orange-950/20 hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                       <Users className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Daftar Mitra Jaringan & Posyandu
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Kelola Pustu Curungrejo, Mangunrejo, Posyandu & TPMD
-                      </p>
-                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/80 dark:text-amber-200">
+                      {mitraList.length} Mitra
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Tambahkan pustu baru, ubah jam pelayanan, nomor kontak penanggung jawab desa, dan alamat faskes jejaring.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('mitra')}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                  >
-                    Kelola Mitra Faskes
-                  </button>
-                </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">
+                      Mitra Faskes & Posyandu
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Pustu, Posyandu ILP & TPMD
+                    </p>
+                  </div>
+                </button>
 
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-600">
+                {/* 6. Gateway Sistem Digital */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('systems')}
+                  className="p-4 rounded-2xl border border-violet-200 dark:border-violet-900/60 bg-gradient-to-br from-violet-50 to-purple-50/50 dark:from-violet-950/40 dark:to-purple-950/20 hover:from-violet-100 hover:to-purple-100 dark:hover:from-violet-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <SlidersHorizontal className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-violet-100 text-violet-800 dark:bg-violet-900/80 dark:text-violet-200">
+                      {systems.length} Aplikasi
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-violet-600 transition-colors">
+                      Gateway Sistem Digital
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Tautan SIMPUS, BPJS, e-Kinerja
+                    </p>
+                  </div>
+                </button>
+
+                {/* 7. Galeri Drive */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('gallery')}
+                  className="p-4 rounded-2xl border border-sky-200 dark:border-sky-900/60 bg-gradient-to-br from-sky-50 to-blue-50/50 dark:from-sky-950/40 dark:to-blue-950/20 hover:from-sky-100 hover:to-blue-100 dark:hover:from-sky-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <HardDrive className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-100 text-sky-800 dark:bg-sky-900/80 dark:text-sky-200">
+                      {driveGallery.length} Berkas
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-sky-600 transition-colors">
+                      Galeri & Drive
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Kelola gambar & dokumen
+                    </p>
+                  </div>
+                </button>
+
+                {/* 8. Berita & Pengumuman */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('news')}
+                  className="p-4 rounded-2xl border border-orange-200 dark:border-orange-900/60 bg-gradient-to-br from-orange-50 to-amber-50/50 dark:from-orange-950/40 dark:to-amber-950/20 hover:from-orange-100 hover:to-amber-100 dark:hover:from-orange-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <FolderOpen className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-orange-100 text-orange-800 dark:bg-orange-900/80 dark:text-orange-200">
+                      {newsList.length} Item
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-orange-600 transition-colors">
+                      Berita & Pengumuman
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Kabar kesehatan & edukasi
+                    </p>
+                  </div>
+                </button>
+
+                {/* 9. Portal Pegawai Internal */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('pegawai')}
+                  className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/20 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200">
+                      Pegawai
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                      Portal Pegawai Internal
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      E-Kinerja, SOP & Logbook
+                    </p>
+                  </div>
+                </button>
+
+                {/* 10. Status Firebase Cloud */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('firebase')}
+                  className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-gradient-to-br from-rose-50 to-red-50/50 dark:from-rose-950/40 dark:to-red-950/20 hover:from-rose-100 hover:to-red-100 dark:hover:from-rose-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-200">
+                      Cloud
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-rose-600 transition-colors">
+                      Status Firebase Cloud
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Database & real-time sync
+                    </p>
+                  </div>
+                </button>
+
+                {/* 11. Kode Apps Script */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('appscript')}
+                  className="p-4 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50 to-violet-50/50 dark:from-indigo-950/40 dark:to-violet-950/20 hover:from-indigo-100 hover:to-violet-100 dark:hover:from-indigo-900/60 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
                       <Code className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Integrasi Google Apps Script & Drive
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Kode backend siap pakai untuk upload & sinkronisasi
-                      </p>
-                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-900/80 dark:text-indigo-200">
+                      Sync
+                    </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Salin script Google Apps Script untuk otomatisasi unggah foto logo ke folder Google Drive dan sinkronisasi ke Google Spreadsheet / Firebase.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('appscript')}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                  >
-                    Buka Kode Apps Script
-                  </button>
-                </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
+                      Apps Script & Drive
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Kode automasi backend
+                    </p>
+                  </div>
+                </button>
+
+                {/* 12. Keamanan & Sandi */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('security')}
+                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-950 hover:from-slate-100 hover:to-slate-200 dark:hover:from-slate-800 text-left transition shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between gap-3 group"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="w-9 h-9 rounded-xl bg-slate-700 dark:bg-slate-800 text-white flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                      Sandi
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                      Ganti Sandi Admin
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Keamanan akun CMS
+                    </p>
+                  </div>
+                </button>
 
               </div>
 
@@ -2448,61 +2625,88 @@ function doGet(e) {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-blue-600" />
+                    <HeartPulse className="w-5 h-5 text-blue-600" />
                     <span>Daftar Poliklinik & Layanan Rawat Jalan</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Sesuaikan jadwal, ruangan, dan dokter penanggung jawab setiap poli
+                    Sesuaikan jadwal operasional, ruangan, dokter penanggung jawab, dan jaminan BPJS setiap poliklinik
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleSyncServicesToFirestore}
-                  disabled={isSavingCloud}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 self-start sm:self-auto"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Layanan ke Firebase'}</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleOpenAddService}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Poliklinik Baru</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSyncServicesToFirestore}
+                    disabled={isSavingCloud}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingCloud ? 'Menyimpan...' : 'Simpan Ke Firebase'}</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {services.map((svc) => (
                   <div
                     key={svc.id}
-                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between gap-4 shadow-xs hover:border-blue-300 dark:hover:border-blue-700 transition"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">{svc.name}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                          {svc.room}
-                        </span>
-                        {svc.bpjsCovered && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            Gratis BPJS
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                            {svc.category} • {svc.room}
                           </span>
-                        )}
+                          <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                            {svc.name}
+                          </h3>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${svc.bpjsCovered ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+                          {svc.bpjsCovered ? 'Gratis BPJS' : 'Umum'}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-500">{svc.description}</p>
-                      <div className="text-[10px] text-slate-400">
-                        Jadwal: <strong>{svc.schedule}</strong> • PIC: {svc.doctorPic}
+
+                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
+                        {svc.description}
+                      </p>
+
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-1 text-xs">
+                        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold">
+                          <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span>{svc.schedule}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px]">
+                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>PIC Medis: <strong>{svc.doctorPic}</strong></span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/60">
                       <button
-                        onClick={() => {
-                          const newSched = prompt(`Ubah jadwal untuk ${svc.name}:`, svc.schedule);
-                          if (newSched !== null && newSched.trim()) {
-                            onUpdateServices(services.map((s) => s.id === svc.id ? { ...s, schedule: newSched.trim() } : s));
-                            showToast(`Jadwal ${svc.name} diperbarui!`);
-                          }
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition"
+                        type="button"
+                        onClick={() => handleDeleteService(svc.id, svc.name)}
+                        className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-bold transition cursor-pointer"
                       >
-                        Ubah Jadwal
+                        Hapus
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditService(svc)}
+                        className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Ubah Jadwal & Detail</span>
                       </button>
                     </div>
                   </div>
@@ -2996,6 +3200,164 @@ function doGet(e) {
                   className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs cursor-pointer"
                 >
                   Simpan Mitra
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL EDIT / TAMBAH POLIKLINIK & LAYANAN                 */}
+      {/* ======================================================== */}
+      {isServiceModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95">
+            {/* Sticky Header with Close Button Always Visible */}
+            <div className="sticky top-0 z-10 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 gap-3">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <HeartPulse className="w-4 h-4 text-blue-600" />
+                <span>{editingServiceId ? 'Ubah Jadwal & Detail Poliklinik' : 'Tambah Poliklinik Baru'}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsServiceModalOpen(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shrink-0 transition cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveService} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Nama Poliklinik / Layanan:
+                  </label>
+                  <input
+                    type="text"
+                    value={serviceForm.name}
+                    onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
+                    placeholder="Contoh: Poli Pemeriksaan Umum / Poli KIA"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Kategori:
+                    </label>
+                    <input
+                      type="text"
+                      value={serviceForm.category}
+                      onChange={(e) => setServiceForm({ ...serviceForm, category: e.target.value })}
+                      placeholder="Pemeriksaan Umum, KIA, dll"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Ruangan / Lokasi:
+                    </label>
+                    <input
+                      type="text"
+                      value={serviceForm.room}
+                      onChange={(e) => setServiceForm({ ...serviceForm, room: e.target.value })}
+                      placeholder="Lantai 1 - Ruang 02"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Jadwal & Jam Operasional:
+                  </label>
+                  <input
+                    type="text"
+                    value={serviceForm.schedule}
+                    onChange={(e) => setServiceForm({ ...serviceForm, schedule: e.target.value })}
+                    placeholder="Contoh: Senin - Sabtu: 07.30 - 14.00 WIB"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Dokter / PIC Medis:
+                    </label>
+                    <input
+                      type="text"
+                      value={serviceForm.doctorPic}
+                      onChange={(e) => setServiceForm({ ...serviceForm, doctorPic: e.target.value })}
+                      placeholder="dr. Anita / Tim Medis"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Status BPJS:
+                    </label>
+                    <label className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 cursor-pointer text-xs font-bold">
+                      <input
+                        type="checkbox"
+                        checked={serviceForm.bpjsCovered}
+                        onChange={(e) => setServiceForm({ ...serviceForm, bpjsCovered: e.target.checked })}
+                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                      />
+                      <span>Gratis BPJS Kesehatan</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Tarif Retribusi / Biaya:
+                  </label>
+                  <input
+                    type="text"
+                    value={serviceForm.tariff}
+                    onChange={(e) => setServiceForm({ ...serviceForm, tariff: e.target.value })}
+                    placeholder="Gratis (BPJS) / Rp 10.000 (Umum)"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Deskripsi Ringkas Layanan:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={serviceForm.description}
+                    onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
+                    placeholder="Penjelasan singkat mengenai layanan poliklinik..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="sticky bottom-0 z-10 shrink-0 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-xs p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsServiceModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  Simpan Poliklinik
                 </button>
               </div>
             </form>
