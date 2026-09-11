@@ -90,6 +90,22 @@ export function sanitizeToDriveTextUrl(val?: string | null): string {
 }
 
 /**
+ * Sanitizes WYSIWYG HTML content to remove any embedded base64 images
+ * to prevent bloated payloads and Firestore write failures.
+ */
+export function sanitizeRichTextContent(htmlContent: string): string {
+  if (!htmlContent) return '';
+  
+  // Replace base64 img src with a warning style placeholder to prevent rule/quota failures
+  const sanitized = htmlContent.replace(
+    /src="data:image\/[^;]+;base64,[^"]+"/g,
+    'src="" data-base64-removed="true" style="border: 2px dashed #ef4444; padding: 12px; margin: 8px 0; display: block; border-radius: 8px; font-weight: bold; font-size: 11px; text-align: center; color: #ef4444; background: #fef2f2; content: \'[Gambar telah dihapus otomatis untuk menghemat kuota Firebase free tier. Silakan gunakan tombol unggah gambar ke Google Drive.]\'"'
+  );
+  
+  return sanitized;
+}
+
+/**
  * Test live connectivity to Firestore and measure roundtrip latency
  */
 export async function testFirestoreConnection(): Promise<{ success: boolean; latencyMs: number; message: string }> {
@@ -200,13 +216,36 @@ export async function saveNewsToFirestore(newsList: NewsAnnouncement[]): Promise
   const batch = writeBatch(db);
   newsList.forEach((n) => {
     const ref = doc(db, 'news', n.id);
-    batch.set(ref, {
+    const sanitizedObj = {
       ...n,
+      content: sanitizeRichTextContent(n.content),
       imageUrl: sanitizeToDriveTextUrl(n.imageUrl)
-    }, { merge: true });
+    };
+    // Remove undefined values to prevent Firestore error
+    const cleanObj = Object.fromEntries(Object.entries(sanitizedObj).filter(([_, v]) => v !== undefined));
+    
+    batch.set(ref, cleanObj, { merge: true });
   });
   await batch.commit();
   recordOp('write', newsList.length || 1);
+}
+
+/**
+ * Save a single news document to Firestore (safest & consumes least quota)
+ */
+export async function saveSingleNewsToFirestore(news: NewsAnnouncement): Promise<void> {
+  const ref = doc(db, 'news', news.id);
+  const sanitized = {
+    ...news,
+    content: sanitizeRichTextContent(news.content),
+    imageUrl: sanitizeToDriveTextUrl(news.imageUrl)
+  };
+  
+  // Remove undefined values to prevent Firestore error
+  const cleanObj = Object.fromEntries(Object.entries(sanitized).filter(([_, v]) => v !== undefined));
+
+  await setDoc(ref, cleanObj, { merge: true });
+  recordOp('write', 1);
 }
 
 /**

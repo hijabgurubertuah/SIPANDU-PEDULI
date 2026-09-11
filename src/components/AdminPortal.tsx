@@ -70,6 +70,7 @@ import {
   saveServicesToFirestore,
   saveSystemsToFirestore,
   saveNewsToFirestore,
+  saveSingleNewsToFirestore,
   saveGalleryToFirestore,
   deleteNewsFromFirestore,
   deleteMitraFromFirestore,
@@ -286,7 +287,7 @@ export default function AdminPortal({
     if (isPublishToCloud) {
       setIsSavingCloud(true);
       try {
-        await saveNewsToFirestore(updatedList);
+        await saveSingleNewsToFirestore(newsItem);
         showToast(`Berita "${newsItem.title}" berhasil dipublikasikan ke Cloud Firebase!`);
       } catch (err: any) {
         showToast('Gagal sinkron ke Firebase: ' + (err.message || 'Error'));

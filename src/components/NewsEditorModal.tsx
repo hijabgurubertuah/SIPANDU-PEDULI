@@ -26,7 +26,8 @@ import {
   Save,
   Send,
   Trash2,
-  CloudUpload
+  CloudUpload,
+  ChevronDown
 } from 'lucide-react';
 import type { NewsAnnouncement } from '../types';
 
@@ -72,6 +73,7 @@ export default function NewsEditorModal({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [showFontDropdown, setShowFontDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -602,25 +604,38 @@ export default function NewsEditorModal({
                   </div>
 
                   {/* Heading / Style dropdown */}
-                  <div className="flex items-center">
-                    <select
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'h1') execFormatter('formatBlock', '<h1>');
-                        if (val === 'h2') execFormatter('formatBlock', '<h2>');
-                        if (val === 'h3') execFormatter('formatBlock', '<h3>');
-                        if (val === 'p') execFormatter('formatBlock', '<p>');
-                        e.target.value = 'default';
+                  <div className="relative flex items-center">
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Mencegah focus hilang agar blok teks tidak hilang
+                        setShowFontDropdown(!showFontDropdown);
+                        setShowColorPicker(false);
+                        setShowHighlightPicker(false);
+                        setShowEmojiPicker(false);
                       }}
-                      defaultValue="default"
-                      className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                      className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer flex items-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                     >
-                      <option value="default" disabled>T Default</option>
-                      <option value="h1">Judul Utama (H1)</option>
-                      <option value="h2">Subjudul (H2)</option>
-                      <option value="h3">Heading 3 (H3)</option>
-                      <option value="p">Paragraf Normal</option>
-                    </select>
+                      <span>T Default</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                    
+                    {showFontDropdown && (
+                      <div className="absolute top-full left-0 mt-1 w-48 max-h-[300px] overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 flex flex-col py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-900/50">Gaya Teks</div>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('formatBlock', '<h1>'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Judul Utama (H1)</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('formatBlock', '<h2>'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Subjudul (H2)</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('formatBlock', '<h3>'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Heading 3 (H3)</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('formatBlock', '<p>'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm font-normal text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Paragraf Normal (P)</button>
+                        
+                        <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700/50 mt-1">Jenis Font</div>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('fontName', 'Arial'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" style={{ fontFamily: 'Arial, sans-serif' }}>Arial</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('fontName', 'Times New Roman'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" style={{ fontFamily: '"Times New Roman", serif' }}>Times New Roman</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('fontName', 'Courier New'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" style={{ fontFamily: '"Courier New", monospace' }}>Courier New</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('fontName', 'Georgia'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" style={{ fontFamily: 'Georgia, serif' }}>Georgia</button>
+                        <button type="button" onMouseDown={(e) => { e.preventDefault(); execFormatter('fontName', 'Verdana'); setShowFontDropdown(false); }} className="px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" style={{ fontFamily: 'Verdana, sans-serif' }}>Verdana</button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Font Size Selector: A- 14 A+ */}
@@ -853,6 +868,12 @@ export default function NewsEditorModal({
                   <div
                     ref={editorRef}
                     contentEditable
+                    onClick={() => {
+                      setShowFontDropdown(false);
+                      setShowColorPicker(false);
+                      setShowHighlightPicker(false);
+                      setShowEmojiPicker(false);
+                    }}
                     onInput={handleEditorInput}
                     style={{
                       fontSize: `${fontSize}px`,

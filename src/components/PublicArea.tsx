@@ -23,7 +23,8 @@ import {
   ChevronDown,
   Layers,
   HeartPulse,
-  Award
+  Award,
+  X
 } from 'lucide-react';
 import {
   ServiceItem,
@@ -89,6 +90,9 @@ export default function PublicArea({
   // IKM survey quick response
   const [ikmRating, setIkmRating] = useState<number | null>(null);
   const [ikmSubmitted, setIkmSubmitted] = useState(false);
+
+  // News Modal state
+  const [selectedNews, setSelectedNews] = useState<NewsAnnouncement | null>(null);
 
   // Filter public downloadable documents
   const publicDocs = documents.filter((d) => d.isPublicDownload);
@@ -364,7 +368,7 @@ export default function PublicArea({
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
                     <span>Oleh: {item.author}</span>
                     <button
-                      onClick={() => onSelectTab('informasi')}
+                      onClick={() => setSelectedNews(item)}
                       className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
                     >
                       Baca Berita
@@ -772,13 +776,14 @@ export default function PublicArea({
               {newsList.map((n) => (
                 <div
                   key={n.id}
-                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 space-y-3 shadow-xs hover:shadow-md transition overflow-hidden"
+                  onClick={() => setSelectedNews(n)}
+                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 space-y-3 shadow-xs hover:shadow-md transition overflow-hidden cursor-pointer group"
                 >
                   {n.imageUrl && (
                     <img
                       src={n.imageUrl}
                       alt={n.title}
-                      className="w-full max-h-72 object-cover rounded-xl border border-slate-200 dark:border-slate-700"
+                      className="w-full max-h-72 object-cover rounded-xl border border-slate-200 dark:border-slate-700 group-hover:opacity-95 transition"
                       referrerPolicy="no-referrer"
                     />
                   )}
@@ -788,27 +793,25 @@ export default function PublicArea({
                         ⭐ Unggulan
                       </span>
                     )}
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      {n.category}
+                    </span>
                     <span className="text-xs text-slate-400">📅 {n.date}</span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug group-hover:text-emerald-600 transition">
                     {n.title}
                   </h3>
                   {n.excerpt && (
-                    <p className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 italic border-l-3 border-emerald-500 pl-3">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3">
                       {n.excerpt}
                     </p>
                   )}
-                  {n.isEmbed && n.embedCode ? (
-                    <div
-                      className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 my-2"
-                      dangerouslySetInnerHTML={{ __html: n.embedCode }}
-                    />
-                  ) : (
-                    <div 
-                      className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line rich-text-content"
-                      dangerouslySetInnerHTML={{ __html: n.content }}
-                    />
-                  )}
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-700 mt-2 text-xs">
+                    <span className="text-slate-500">Oleh: {n.author}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      Baca Berita <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1406,6 +1409,88 @@ export default function PublicArea({
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* News Modal */}
+      {selectedNews && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setSelectedNews(null)}
+          />
+          
+          {/* Modal content */}
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white flex-1 truncate pr-4">
+                {selectedNews.title}
+              </h2>
+              <button
+                onClick={() => setSelectedNews(null)}
+                className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 text-slate-500 rounded-full transition-colors"
+                title="Tutup Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+              {/* Meta information */}
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  {selectedNews.category}
+                </span>
+                <span className="text-sm font-medium text-slate-500">
+                  📅 {selectedNews.date}
+                </span>
+                <span className="text-sm font-medium text-slate-500">
+                  ✍️ {selectedNews.author}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white leading-tight mb-6">
+                {selectedNews.title}
+              </h1>
+
+              {/* Cover Image */}
+              {selectedNews.imageUrl && (
+                <img
+                  src={selectedNews.imageUrl}
+                  alt={selectedNews.title}
+                  className="w-full h-auto max-h-[400px] object-cover rounded-2xl mb-8 border border-slate-200 dark:border-slate-700 shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+
+              {/* Content */}
+              {selectedNews.isEmbed && selectedNews.embedCode ? (
+                <div
+                  className="w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm"
+                  dangerouslySetInnerHTML={{ __html: selectedNews.embedCode }}
+                />
+              ) : (
+                <div 
+                  className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 rich-text-content"
+                  dangerouslySetInnerHTML={{ __html: selectedNews.content }}
+                />
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
+              <button
+                onClick={() => setSelectedNews(null)}
+                className="px-6 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
