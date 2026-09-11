@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, Smartphone, CheckCircle } from 'lucide-react';
+import { Download, X, Smartphone } from 'lucide-react';
+import { getSyncCachedImage } from '../lib/imageCache';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export default function PWAInstallPrompt() {
+interface PWAInstallPromptProps {
+  logoUrl?: string;
+  appName?: string;
+}
+
+export default function PWAInstallPrompt({ logoUrl, appName = 'SIPANDU PEDULI' }: PWAInstallPromptProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -60,11 +66,21 @@ export default function PWAInstallPrompt() {
     return null;
   }
 
+  const cachedLogo = getSyncCachedImage(logoUrl) || logoUrl;
+
   return (
     <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 rounded-2xl border border-emerald-500/40 shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-md">
-          <Smartphone className="w-5 h-5" />
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-md p-1 overflow-hidden border border-emerald-400/30">
+          {cachedLogo ? (
+            <img
+              src={cachedLogo}
+              alt="App Logo"
+              className="w-full h-full object-contain rounded-xl"
+            />
+          ) : (
+            <Smartphone className="w-6 h-6" />
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -74,13 +90,13 @@ export default function PWAInstallPrompt() {
             </h4>
             <button
               onClick={handleDismiss}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg transition"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-            Pasang <strong>SIPANDU PEDULI</strong> di layar utama HP atau komputer Anda untuk akses cepat, ringan, dan tanpa kuota berulang.
+            Pasang <strong>{appName}</strong> di layar utama HP atau komputer Anda untuk akses cepat, ringan, dan tanpa kuota berulang.
           </p>
 
           <div className="mt-3 flex items-center gap-2">

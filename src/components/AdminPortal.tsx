@@ -55,6 +55,7 @@ import {
 } from '../types';
 import { VILLAGES_KEPANJEN, DEFAULT_DOCK_CONFIG } from '../data/mockData';
 import FirebaseStatusTab from './FirebaseStatusTab';
+import { getSyncCachedImage } from '../lib/imageCache';
 import {
   saveSiteSettingsToFirestore,
   saveMarqueeSettingsToFirestore,
@@ -704,22 +705,36 @@ function doGet(e) {
   };
 
   // ----------------------------------------------------
-  // LOGIN SCREEN (Minimalist)
+  // LOGIN SCREEN (Minimalist with 3D Rotate-Y Uploaded Logo)
   // ----------------------------------------------------
   if (!isAuthenticated) {
+    const cachedLogo = getSyncCachedImage(siteSettings.logoUrl) || siteSettings.logoUrl;
+
     return (
       <div className="min-h-[75vh] flex items-center justify-center px-4 py-12 bg-slate-50 dark:bg-slate-950">
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800 space-y-5">
           
-          <div className="text-center space-y-1.5">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="text-center space-y-2">
+            {/* 3D Rotate-Y Uploaded Puskesmas Logo */}
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-white dark:bg-slate-800/90 flex items-center justify-center p-2 shadow-lg shadow-emerald-600/15 border border-emerald-100 dark:border-emerald-900/40 perspective-500">
+              {cachedLogo ? (
+                <img
+                  src={cachedLogo}
+                  alt={siteSettings.name || 'Logo Puskesmas'}
+                  className="w-12 h-12 object-contain animate-rotate-y select-none pointer-events-none drop-shadow-sm"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center animate-rotate-y shadow-xs">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+              )}
             </div>
+
             <h1 className="text-lg font-extrabold text-slate-900 dark:text-white">
               Portal Admin
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Masukkan kata sandi admin
+              {siteSettings.name || 'Puskesmas Kepanjen'}
             </p>
           </div>
 

@@ -41,6 +41,7 @@ import MobileDock from './components/MobileDock';
 import PublicMobileSidebar from './components/PublicMobileSidebar';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { loadAllFromFirestore } from './lib/firebase';
+import { cacheImageLocally, updateDynamicFaviconAndPwa } from './lib/imageCache';
 
 export default function App() {
   // Dark mode state
@@ -153,9 +154,21 @@ export default function App() {
   // Public Mobile Sidebar Drawer Open/Close state
   const [publicSidebarOpen, setPublicSidebarOpen] = useState(false);
 
-  // Sync CMS state changes to localStorage
+  // Sync CMS state changes to localStorage and dynamic favicon/PWA manifest
   useEffect(() => {
     localStorage.setItem('sipandu_site_settings', JSON.stringify(siteSettings));
+    
+    // Dynamic Favicon and PWA manifest icon sync
+    if (siteSettings.logoUrl) {
+      updateDynamicFaviconAndPwa(siteSettings.logoUrl, siteSettings.name);
+      cacheImageLocally(siteSettings.logoUrl);
+    }
+    if (siteSettings.kabupatenLogoUrl) {
+      cacheImageLocally(siteSettings.kabupatenLogoUrl);
+    }
+    if (siteSettings.bannerUrl) {
+      cacheImageLocally(siteSettings.bannerUrl);
+    }
   }, [siteSettings]);
 
   useEffect(() => {
@@ -466,8 +479,8 @@ export default function App() {
         onToggleDarkMode={toggleDarkMode}
       />
 
-      {/* PWA Install Notification Prompt */}
-      <PWAInstallPrompt />
+      {/* PWA Install Notification Prompt with Uploaded Logo */}
+      <PWAInstallPrompt logoUrl={siteSettings.logoUrl} appName={siteSettings.name} />
 
       {/* Document Gateway Detail Modal */}
       <DocumentModal
