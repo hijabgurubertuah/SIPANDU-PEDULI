@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import {
   LayoutDashboard,
   FileSpreadsheet,
@@ -61,6 +62,9 @@ export default function PortalPegawai({
   onVerifyIndicator
 }: PortalPegawaiProps) {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  
+  useBodyScrollLock(isRoleModalOpen);
+  
   // Navigation inside Portal Pegawai
   const [activeMenu, setActiveMenu] = useState<
     'dashboard' | 'tu' | 'klaster' | 'sasaran' | 'perencanaan' | 'prioritas' | 'monev' | 'akreditasi' | 'admin'

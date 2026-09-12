@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { X, UploadCloud, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { DocumentItem, UnitCluster, UserAccount } from '../types';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface AddDocumentModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface AddDocumentModalProps {
 }
 
 export default function AddDocumentModal({ isOpen, onClose, onAdd, currentUser }: AddDocumentModalProps) {
+  useBodyScrollLock(isOpen);
+  
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<DocumentItem['category']>('pkp');
   const [year, setYear] = useState(2026);

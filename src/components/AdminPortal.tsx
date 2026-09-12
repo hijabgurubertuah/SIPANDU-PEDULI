@@ -1,4 +1,5 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import {
   Settings,
   Image,
@@ -260,6 +261,9 @@ export default function AdminPortal({
   const [confirmMessage, setConfirmMessage] = useState('');
   const [confirmCallback, setConfirmCallback] = useState<(() => void | Promise<void>) | null>(null);
   const [confirmIsDanger, setConfirmIsDanger] = useState(true);
+
+  const isAnyModalOpen = mobileSidebarOpen || isMitraModalOpen || isServiceModalOpen || showConfirm;
+  useBodyScrollLock(isAnyModalOpen);
 
   const triggerConfirm = (
     title: string,

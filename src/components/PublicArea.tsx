@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import {
   Activity,
   Calendar,
@@ -93,6 +94,9 @@ export default function PublicArea({
 
   // News Modal state
   const [selectedNews, setSelectedNews] = useState<NewsAnnouncement | null>(null);
+
+  // Lock body scroll when news modal is open
+  useBodyScrollLock(!!selectedNews);
 
   // Filter public downloadable documents
   const publicDocs = documents.filter((d) => d.isPublicDownload);

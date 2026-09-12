@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Search, X, FileText, ExternalLink, Activity, Building2, ChevronRight } from 'lucide-react';
 import { DocumentItem, ServiceItem, DigitalSystemItem } from '../types';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export default function SearchModal({
   systems,
   onSelectDocument
 }: SearchModalProps) {
+  useBodyScrollLock(isOpen);
+  
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'doc' | 'service' | 'system'>('all');
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import {
   X,
   FileText,
@@ -52,6 +53,8 @@ export default function NewsEditorModal({
   onSave,
   galleryPhotos = []
 }: NewsEditorModalProps) {
+  useBodyScrollLock(isOpen);
+  
   const [mode, setMode] = useState<'berita' | 'embed'>('berita');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Prestasi');

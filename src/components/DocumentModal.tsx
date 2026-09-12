@@ -1,5 +1,6 @@
 import { X, ExternalLink, CheckCircle2, Clock, FileSpreadsheet, FileText, Folder, ShieldCheck } from 'lucide-react';
 import { DocumentItem } from '../types';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface DocumentModalProps {
   document: DocumentItem | null;
@@ -9,6 +10,7 @@ interface DocumentModalProps {
 }
 
 export default function DocumentModal({ document, onClose, onVerify, canVerify }: DocumentModalProps) {
+  useBodyScrollLock(!!document);
   if (!document) return null;
 
   const getIcon = (type: string) => {
