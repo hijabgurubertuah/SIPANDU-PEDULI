@@ -75,16 +75,20 @@ function recordOp(type: 'write' | 'read', count = 1) {
 export function sanitizeToDriveTextUrl(val?: string | null): string {
   if (!val) return '';
   const trimmed = val.trim();
-  if (trimmed.startsWith('data:image')) {
+  if (trimmed.startsWith('data:image') || trimmed.length > 30000) {
     console.warn('Gambar base64 terdeteksi dan dibersihkan dari penyimpanan Firebase untuk meminimalkan kuota.');
     return ''; // Block base64 strings from being written to Firestore to prevent security rule payload errors
   }
-  // If user pasted a Google Drive share link, convert it to a reliable direct embed text URL
-  if (trimmed.includes('drive.google.com/file/d/')) {
-    const idMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (idMatch && idMatch[1]) {
-      return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
-    }
+  
+  // Advanced Google Drive URL Parser to extract File ID from any format
+  const driveMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                     trimmed.match(/id=([a-zA-Z0-9_-]+)/) ||
+                     trimmed.match(/\/open\?id=([a-zA-Z0-9_-]+)/) ||
+                     trimmed.match(/\/uc\?id=([a-zA-Z0-9_-]+)/);
+                     
+  if (driveMatch && driveMatch[1]) {
+    // Return direct link which is highly reliable and loads quickly
+    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
   }
   return trimmed;
 }
