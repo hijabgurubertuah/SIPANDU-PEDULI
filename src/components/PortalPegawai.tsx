@@ -24,7 +24,10 @@ import {
   Database,
   Lock,
   UserCheck,
-  Briefcase
+  Briefcase,
+  Globe,
+  MapPin,
+  HeartPulse
 } from 'lucide-react';
 import {
   UserAccount,
@@ -35,6 +38,7 @@ import {
   ComplaintItem
 } from '../types';
 import { MOCK_USERS } from '../data/mockData';
+import { POSYANDU_108_LIST, KEPANJEN_VILLAGES } from '../data/posyanduData';
 
 interface PortalPegawaiProps {
   currentUser: UserAccount;
@@ -62,9 +66,12 @@ export default function PortalPegawai({
   onVerifyIndicator
 }: PortalPegawaiProps) {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  
+  const [roleCategoryTab, setRoleCategoryTab] = useState<'internal' | 'jejaring'>('internal');
+  const [posyanduSearch, setPosyanduSearch] = useState('');
+  const [selectedVillageFilter, setSelectedVillageFilter] = useState('all');
+
   useBodyScrollLock(isRoleModalOpen);
-  
+
   // Navigation inside Portal Pegawai
   const [activeMenu, setActiveMenu] = useState<
     'dashboard' | 'tu' | 'klaster' | 'sasaran' | 'perencanaan' | 'prioritas' | 'monev' | 'akreditasi' | 'admin'
@@ -85,11 +92,20 @@ export default function PortalPegawai({
   const [docSearch, setDocSearch] = useState('');
 
   // Check user permission
-  const isSuperAdmin = currentUser.role === 'super_admin';
-  const isAdmin = currentUser.role === 'super_admin' || currentUser.role === 'admin';
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'admin_master';
+  const isAdminMaster = currentUser.role === 'admin_master' || currentUser.role === 'super_admin';
+  const isAdminKonten = currentUser.role === 'admin_konten';
+  const isKaTu = currentUser.role === 'ka_tu';
+  const isPjKlaster = currentUser.role === 'pj_klaster';
+  const isKoordinatorProgram = currentUser.role === 'koordinator_program';
+  const isJejaringPosyandu = currentUser.role === 'jejaring_posyandu';
+  const isJejaringPustu = currentUser.role === 'jejaring_pustu';
+  const isJejaringMitra = currentUser.role === 'jejaring_mitra';
+
+  const isAdmin = isAdminMaster;
   const isPimpinan = currentUser.role === 'pimpinan';
-  const canVerify = isSuperAdmin || isAdmin || isPimpinan || currentUser.role === 'koordinator';
-  const canAdd = isSuperAdmin || isAdmin || currentUser.role === 'koordinator' || currentUser.role === 'petugas';
+  const canVerify = isAdminMaster || isKaTu || isPjKlaster || isPimpinan || currentUser.role === 'koordinator';
+  const canAdd = isAdminMaster || isAdminKonten || isKaTu || isPjKlaster || isKoordinatorProgram || isJejaringPosyandu || isJejaringPustu;
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard Pegawai', icon: LayoutDashboard },
@@ -199,8 +215,9 @@ export default function PortalPegawai({
       {/* Modal Simulasi Hak Akses (Mobile-Responsive & Sticky Header) */}
       {isRoleModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
-            {/* Sticky Header with Close Button Always Visible */}
+          <div className="w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Sticky Header */}
             <div className="sticky top-0 z-10 shrink-0 border-b border-slate-100 dark:border-slate-800 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300">
@@ -208,10 +225,10 @@ export default function PortalPegawai({
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                    Simulasi Hak Akses & Akun Pegawai
+                    Simulasi Akses User & Pengelola SIPANDU PEDULI
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Pilih salah satu profil di bawah ini untuk menguji hak akses:
+                    Puskesmas Kepanjen — Internal & Jejaring 108 Posyandu, Pustu, Mitra
                   </p>
                 </div>
               </div>
@@ -224,44 +241,232 @@ export default function PortalPegawai({
               </button>
             </div>
 
+            {/* Category Tabs: Internal vs Jejaring */}
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex gap-2">
+              <button
+                onClick={() => setRoleCategoryTab('internal')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  roleCategoryTab === 'internal'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-amber-50'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Login Internal / Pegawai</span>
+              </button>
+              <button
+                onClick={() => setRoleCategoryTab('jejaring')}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                  roleCategoryTab === 'jejaring'
+                    ? 'bg-teal-700 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-teal-50'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                <span>Login Jejaring (Pustu, Mitra, 108 Posyandu)</span>
+              </button>
+            </div>
+
             {/* Scrollable Modal Body */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {MOCK_USERS.map((user) => {
-                const isCurrent = currentUser.id === user.id;
-                return (
-                  <button
-                    key={user.id}
-                    onClick={() => {
-                      onSelectUser(user);
-                      setIsRoleModalOpen(false);
-                    }}
-                    className={`w-full text-left p-3.5 rounded-xl border text-xs transition flex items-center justify-between gap-3 cursor-pointer ${
-                      isCurrent
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
-                        : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white'
-                    }`}
-                  >
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-sm leading-snug">{user.name}</div>
-                      <div className={isCurrent ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}>
-                        <strong>{user.roleLabel}</strong> • {user.unitName}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {roleCategoryTab === 'internal' ? (
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
+                    Pengelola Internal Puskesmas Kepanjen:
+                  </div>
+                  {MOCK_USERS.filter((u) => u.categoryType === 'internal' || !u.categoryType).map((user) => {
+                    const isCurrent = currentUser.id === user.id;
+                    return (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          onSelectUser(user);
+                          setIsRoleModalOpen(false);
+                        }}
+                        className={`w-full text-left p-3.5 rounded-xl border text-xs transition flex items-center justify-between gap-3 cursor-pointer ${
+                          isCurrent
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                            : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-sm leading-snug flex items-center gap-2">
+                            <span>{user.name}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                              {user.roleLabel}
+                            </span>
+                          </div>
+                          <div className={isCurrent ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}>
+                            {user.unitName}
+                          </div>
+                          <div className={`text-[10px] font-mono ${isCurrent ? 'text-emerald-200' : 'text-slate-400'}`}>
+                            NIP: {user.nip}
+                          </div>
+                        </div>
+                        {isCurrent ? (
+                          <span className="px-2.5 py-1 rounded-full bg-white text-emerald-900 font-extrabold text-[10px] shrink-0">
+                            Aktif Sekarang
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold shrink-0">
+                            Pilih Akun
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Pustu & Mitra Quick Users */}
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
+                      Puskesmas Pembantu (Pustu) & Mitra:
+                    </div>
+                    {MOCK_USERS.filter((u) => u.role === 'jejaring_pustu' || u.role === 'jejaring_mitra').map((user) => {
+                      const isCurrent = currentUser.id === user.id;
+                      return (
+                        <button
+                          key={user.id}
+                          onClick={() => {
+                            onSelectUser(user);
+                            setIsRoleModalOpen(false);
+                          }}
+                          className={`w-full text-left p-3 rounded-xl border text-xs transition flex items-center justify-between gap-3 cursor-pointer ${
+                            isCurrent
+                              ? 'bg-teal-700 text-white border-teal-700 shadow-md'
+                              : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-teal-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-white'
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-sm leading-snug">{user.name}</div>
+                            <div className={isCurrent ? 'text-teal-100' : 'text-slate-500 dark:text-slate-400'}>
+                              {user.unitName}
+                            </div>
+                          </div>
+                          {isCurrent ? (
+                            <span className="px-2.5 py-1 rounded-full bg-white text-teal-900 font-extrabold text-[10px] shrink-0">
+                              Aktif Sekarang
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold shrink-0">
+                              Pilih Profil
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 108 Posyandu Selector */}
+                  <div className="p-4 bg-teal-50/60 dark:bg-teal-950/30 rounded-2xl border border-teal-200 dark:border-teal-800/60 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-black text-teal-900 dark:text-teal-200 flex items-center gap-1.5">
+                          <HeartPulse className="w-4 h-4 text-teal-600" />
+                          <span>Pilih Akun Kader dari 108 Posyandu Wilayah Kepanjen</span>
+                        </div>
+                        <p className="text-[11px] text-teal-700 dark:text-teal-300">
+                          18 Kelurahan / Desa • Masing-masing 6 Posyandu
+                        </p>
                       </div>
-                      <div className={`text-[10px] font-mono ${isCurrent ? 'text-emerald-200' : 'text-slate-400'}`}>
-                        NIP: {user.nip}
+                      <span className="px-2 py-0.5 rounded bg-teal-200 dark:bg-teal-900 text-teal-950 dark:text-teal-100 font-extrabold text-[10px] self-start sm:self-center">
+                        Total 108 Posyandu
+                      </span>
+                    </div>
+
+                    {/* Filter Village and Search */}
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 block mb-1">Filter Desa / Kelurahan:</label>
+                        <select
+                          value={selectedVillageFilter}
+                          onChange={(e) => setSelectedVillageFilter(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200"
+                        >
+                          <option value="all">Semua Desa (18 Kelurahan/Desa)</option>
+                          {KEPANJEN_VILLAGES.map((v) => (
+                            <option key={v} value={v}>{v}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 block mb-1">Cari Nama Posyandu / Kader:</label>
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                          <input
+                            type="text"
+                            placeholder="Contoh: Posyandu Mawar 01"
+                            value={posyanduSearch}
+                            onChange={(e) => setPosyanduSearch(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-200"
+                          />
+                        </div>
                       </div>
                     </div>
-                    {isCurrent ? (
-                      <span className="px-2.5 py-1 rounded-full bg-white text-emerald-900 font-extrabold text-[10px] shrink-0">
-                        Aktif Sekarang
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold shrink-0">
-                        Pilih Profil
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+
+                    {/* Filtered 108 Posyandu List */}
+                    <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 pt-1">
+                      {POSYANDU_108_LIST.filter((p) => {
+                        const matchVillage = selectedVillageFilter === 'all' || p.village === selectedVillageFilter;
+                        const matchSearch = !posyanduSearch.trim() || 
+                          p.name.toLowerCase().includes(posyanduSearch.toLowerCase()) || 
+                          p.village.toLowerCase().includes(posyanduSearch.toLowerCase()) ||
+                          (p.kaderPic && p.kaderPic.toLowerCase().includes(posyanduSearch.toLowerCase()));
+                        return matchVillage && matchSearch;
+                      }).map((posyandu) => {
+                        const isCurrentPosyandu = currentUser.posyanduId === posyandu.id;
+                        return (
+                          <button
+                            key={posyandu.id}
+                            onClick={() => {
+                              const posyanduUser: UserAccount = {
+                                id: `user-${posyandu.id}`,
+                                name: `Kader ${posyandu.kaderPic || 'Posyandu'} (${posyandu.name})`,
+                                email: `${posyandu.id}@puskesmaskepanjen.id`,
+                                nip: `KADER-${posyandu.id.toUpperCase()}`,
+                                role: 'jejaring_posyandu',
+                                unit: 'kia',
+                                unitName: `${posyandu.name} — ${posyandu.village}`,
+                                roleLabel: 'Kader Posyandu',
+                                status: 'active',
+                                categoryType: 'jejaring',
+                                posyanduId: posyandu.id,
+                                posyanduName: posyandu.name,
+                                villageName: posyandu.village
+                              };
+                              onSelectUser(posyanduUser);
+                              setIsRoleModalOpen(false);
+                            }}
+                            className={`w-full text-left p-2.5 rounded-xl border text-xs transition flex items-center justify-between gap-2 cursor-pointer ${
+                              isCurrentPosyandu
+                                ? 'bg-teal-700 text-white border-teal-700 shadow-xs'
+                                : 'bg-white dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            <div className="space-y-0.5">
+                              <div className="font-bold flex items-center gap-1.5">
+                                <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
+                                <span>{posyandu.name}</span>
+                                <span className="text-[10px] font-normal opacity-75">({posyandu.village})</span>
+                              </div>
+                              <div className="text-[10px] opacity-80">
+                                PIC Kader: <strong>{posyandu.kaderPic}</strong> ({posyandu.cadreCount} Kader) • Status: {posyandu.activeStatus}
+                              </div>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                              isCurrentPosyandu ? 'bg-white text-teal-900' : 'bg-teal-100 text-teal-800'
+                            }`}>
+                              {isCurrentPosyandu ? 'Aktif' : 'Pilih Posyandu'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -289,9 +494,117 @@ export default function PortalPegawai({
         })}
       </div>
 
-      {/* ================= SECTION 1: DASHBOARD PEGAWAI ================= */}
+      {/* ================= SECTION 1: DASHBOARD PEGAWAI / JEJARING ================= */}
       {activeMenu === 'dashboard' && (
         <div className="space-y-8">
+          
+          {/* Jejaring Specific Banner if Logged in as Jejaring */}
+          {(currentUser.categoryType === 'jejaring' || currentUser.role.startsWith('jejaring_')) && (
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-teal-900 via-teal-800 to-emerald-900 text-white shadow-lg space-y-4 border border-teal-700/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-teal-400 text-teal-950 font-black">
+                    <Globe className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-400 text-teal-950">
+                      MODUS PORTAL JEJARING LINTAS SEKTOR
+                    </span>
+                    <h2 className="text-base sm:text-lg font-black text-white mt-0.5">
+                      {currentUser.role === 'jejaring_posyandu' && `Portal Kader ${currentUser.posyanduName || currentUser.unitName}`}
+                      {currentUser.role === 'jejaring_pustu' && `Portal Puskesmas Pembantu (${currentUser.unitName})`}
+                      {currentUser.role === 'jejaring_mitra' && `Portal Mitra Faskes / Klinik (${currentUser.unitName})`}
+                    </h2>
+                  </div>
+                </div>
+
+                <span className="px-3 py-1 rounded-xl bg-teal-950/80 text-teal-200 text-xs font-bold border border-teal-600 self-start sm:self-center">
+                  📍 {currentUser.villageName ? `Desa/Kel: ${currentUser.villageName}` : 'Wilayah Puskesmas Kepanjen'}
+                </span>
+              </div>
+
+              <p className="text-xs sm:text-sm text-teal-100 leading-relaxed max-w-4xl">
+                Selamat datang di sistem gateway jejaring. Melalui portal ini, Anda dapat mengakses formulir laporan bulanan, materi edukasi kesehatan, panduan ILP, serta tautan gateway aplikasi resmi Kemenkes RI (ASIK, e-PPGBM) dan e-Puskesmas.
+              </p>
+
+              {/* Jejaring Quick Action Buttons */}
+              <div className="pt-2 grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                {currentUser.role === 'jejaring_posyandu' && (
+                  <>
+                    <a
+                      href="https://sehatindonesiaku.kemkes.go.id/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-3 rounded-xl bg-white text-teal-950 font-bold hover:bg-teal-100 transition flex items-center justify-between gap-2 shadow-xs"
+                    >
+                      <span>Aplikasi ASIK Kemenkes</span>
+                      <ExternalLink className="w-4 h-4 text-teal-700" />
+                    </a>
+                    <a
+                      href="https://sigizi.kemkes.go.id/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-700 transition flex items-center justify-between gap-2 border border-teal-600 shadow-xs"
+                    >
+                      <span>e-PPGBM Stunting</span>
+                      <ExternalLink className="w-4 h-4 text-teal-300" />
+                    </a>
+                    <button
+                      onClick={() => setActiveMenu('sasaran')}
+                      className="p-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-700 transition flex items-center justify-between gap-2 border border-teal-600 shadow-xs text-left"
+                    >
+                      <span>Data Sasaran Posyandu</span>
+                      <Database className="w-4 h-4 text-teal-300" />
+                    </button>
+                    <button
+                      onClick={() => setActiveMenu('prioritas')}
+                      className="p-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-700 transition flex items-center justify-between gap-2 border border-teal-600 shadow-xs text-left"
+                    >
+                      <span>Rekap CKG Lansia & Bumil</span>
+                      <Activity className="w-4 h-4 text-teal-300" />
+                    </button>
+                  </>
+                )}
+
+                {(currentUser.role === 'jejaring_pustu' || currentUser.role === 'jejaring_mitra') && (
+                  <>
+                    <a
+                      href="https://malang.epuskesmas.id/login"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-3 rounded-xl bg-white text-teal-950 font-bold hover:bg-teal-100 transition flex items-center justify-between gap-2 shadow-xs"
+                    >
+                      <span>e-Puskesmas Malang (RME)</span>
+                      <ExternalLink className="w-4 h-4 text-teal-700" />
+                    </a>
+                    <a
+                      href="https://pcarejkn.bpjs-kesehatan.go.id/eclaim/login"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-700 transition flex items-center justify-between gap-2 border border-teal-600 shadow-xs"
+                    >
+                      <span>PCare JKN BPJS</span>
+                      <ExternalLink className="w-4 h-4 text-teal-300" />
+                    </a>
+                    <button
+                      onClick={() => setActiveMenu('monev')}
+                      className="p-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-700 transition flex items-center justify-between gap-2 border border-teal-600 shadow-xs text-left"
+                    >
+                      <span>Jadwal Bimtek & Desk</span>
+                      <FileCheck className="w-4 h-4 text-teal-300" />
+                    </button>
+                    <button
+                      onClick={() => setActiveMenu('perencanaan')}
+                      className="p-3 rounded-xl bg-teal-800 text-white font-bold hover:bg-teal-700 transition flex items-center justify-between gap-2 border border-teal-600 shadow-xs text-left"
+                    >
+                      <span>Dokumen Kerjasama/SOP</span>
+                      <FolderOpen className="w-4 h-4 text-teal-300" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           
           {/* KPI Cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

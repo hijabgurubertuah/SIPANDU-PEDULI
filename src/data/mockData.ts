@@ -36,71 +36,231 @@ export const PUSKESMAS_INFO = {
 };
 
 export const MOCK_USERS: UserAccount[] = [
+  // --- ADMIN MASTER ---
   {
-    id: 'user-1',
-    name: 'Ir. Ahmad Subagyo, S.Kom',
-    email: 'admin.sipandu@puskesmaskepanjen.id',
-    nip: '198403122008011005',
-    role: 'super_admin',
+    id: 'user-admin-master',
+    name: 'Yuswantien Himmamie, SKM.',
+    email: 'yuswantien.adminmaster@puskesmaskepanjen.id',
+    nip: '198205102006042011',
+    role: 'admin_master',
     unit: 'all',
-    unitName: 'Semua Unit & Administrator',
-    roleLabel: 'Super Admin',
-    status: 'active'
+    unitName: 'Semua Unit & Sistem Administrator',
+    roleLabel: 'Admin Master',
+    status: 'active',
+    categoryType: 'internal'
+  },
+
+  // --- ADMIN KONTEN ---
+  {
+    id: 'user-admin-konten-1',
+    name: 'Luluk Lady Laili, SKM',
+    email: 'luluk.konten@puskesmaskepanjen.id',
+    nip: '198708142011012015',
+    role: 'admin_konten',
+    unit: 'all',
+    unitName: 'Tim Publikasi & Media Informasi',
+    roleLabel: 'Admin Konten',
+    status: 'active',
+    categoryType: 'internal'
   },
   {
-    id: 'user-2',
-    name: 'drg. Hj. Rina Puspitasari, M.Kes',
-    email: 'kapus.kepanjen@malangkab.go.id',
-    nip: '197605152003122004',
-    role: 'pimpinan',
+    id: 'user-admin-konten-2',
+    name: 'Estyningrum, A.Md.RMIK.',
+    email: 'esty.konten@puskesmaskepanjen.id',
+    nip: '199103222014022008',
+    role: 'admin_konten',
     unit: 'all',
-    unitName: 'Pimpinan / Kepala Puskesmas',
-    roleLabel: 'Pimpinan Puskesmas',
-    status: 'active'
+    unitName: 'Tim Publikasi & Sistem Informasi',
+    roleLabel: 'Admin Konten',
+    status: 'active',
+    categoryType: 'internal'
   },
+
+  // --- KEPALA TATA USAHA ---
   {
-    id: 'user-3',
-    name: 'Bd. Siti Nurjanah, S.Tr.Keb',
-    email: 'kia.kepanjen@malangkab.go.id',
-    nip: '198811202010012014',
-    role: 'koordinator',
+    id: 'user-ka-tu',
+    name: 'Intan Dara Nurmana, A.Md.Keb.',
+    email: 'katu.kepanjen@malangkab.go.id',
+    nip: '198509012009022003',
+    role: 'ka_tu',
+    unit: 'tu',
+    unitName: 'Bagian Tata Usaha (TU) & Manajemen',
+    roleLabel: 'Kepala Tata Usaha',
+    status: 'active',
+    categoryType: 'internal'
+  },
+
+  // --- PENANGGUNG JAWAB KLASTER ---
+  {
+    id: 'user-pj-klaster-1',
+    name: 'Ulyn Nuhaella, S.Tr.Keb.',
+    email: 'pj.kia@puskesmaskepanjen.id',
+    nip: '198904122012032001',
+    role: 'pj_klaster',
     unit: 'kia',
     unitName: 'Klaster 2: Kesehatan Ibu & Anak',
-    roleLabel: 'Koordinator Klaster KIA',
-    status: 'active'
+    roleLabel: 'PJ Klaster KIA',
+    status: 'active',
+    categoryType: 'internal'
   },
   {
-    id: 'user-4',
-    name: 'dr. Hendra Wicaksono',
-    email: 'dewasa.kepanjen@malangkab.go.id',
-    nip: '199002142017041002',
-    role: 'koordinator',
+    id: 'user-pj-klaster-2',
+    name: 'dr. Karina Indah Prayogi',
+    email: 'pj.dewasa@puskesmaskepanjen.id',
+    nip: '199201152019032004',
+    role: 'pj_klaster',
     unit: 'dewasa_lansia',
-    unitName: 'Klaster 3: Dewasa & Lansia (PTM & CKG)',
-    roleLabel: 'Koordinator Klaster Dewasa & Lansia',
-    status: 'active'
+    unitName: 'Klaster 3: Dewasa & Lansia',
+    roleLabel: 'PJ Klaster Dewasa & Lansia',
+    status: 'active',
+    categoryType: 'internal'
   },
   {
-    id: 'user-5',
-    name: 'Dwi Retno Hastuti, A.Md.Kep',
-    email: 'staf.p2m@puskesmaskepanjen.id',
-    nip: '199407082020122009',
-    role: 'petugas',
+    id: 'user-pj-klaster-3',
+    name: 'drg. Balqis Fildzah Badzlina',
+    email: 'pj.manajemen@puskesmaskepanjen.id',
+    nip: '199307202020122010',
+    role: 'pj_klaster',
+    unit: 'manajemen',
+    unitName: 'Klaster 1: Manajemen & Pelayanan',
+    roleLabel: 'PJ Klaster Manajemen',
+    status: 'active',
+    categoryType: 'internal'
+  },
+  {
+    id: 'user-pj-klaster-4',
+    name: 'dr. Hadaya Trias Ramadhani',
+    email: 'pj.p2m@puskesmaskepanjen.id',
+    nip: '199110052018011002',
+    role: 'pj_klaster',
     unit: 'p2m_kesling',
-    unitName: 'Klaster 4: P2M & Kesling',
-    roleLabel: 'Petugas / Staf Teknis',
-    status: 'active'
+    unitName: 'Klaster 4: P2M & Penyehatan Lingkungan',
+    roleLabel: 'PJ Klaster P2M & Kesling',
+    status: 'active',
+    categoryType: 'internal'
+  },
+
+  // --- KOORDINATOR PROGRAM ---
+  {
+    id: 'user-koor-prog-1',
+    name: 'Ifa Kristinawati, S.ST.',
+    email: 'ifa.koor.kia@puskesmaskepanjen.id',
+    nip: '198602182009032007',
+    role: 'koordinator_program',
+    unit: 'kia',
+    unitName: 'Program KIA, Gizi & Stunting',
+    roleLabel: 'Koordinator Program KIA',
+    status: 'active',
+    categoryType: 'internal'
   },
   {
-    id: 'user-6',
-    name: 'Drs. Bambang Sudirman (Auditor Dinkes)',
-    email: 'monev.dinkes@malangkab.go.id',
-    nip: '197302011998031003',
-    role: 'viewer',
-    unit: 'all',
-    unitName: 'Lintas Klaster / Monev Dinkes',
-    roleLabel: 'Viewer / Tim Monev',
-    status: 'active'
+    id: 'user-koor-prog-2',
+    name: 'Binti Mas Adah, A.Md.Keb.',
+    email: 'binti.koor.pkp@puskesmaskepanjen.id',
+    nip: '198805252010012019',
+    role: 'koordinator_program',
+    unit: 'tu',
+    unitName: 'Program Penilaian Kinerja Puskesmas (PKP) & SPM',
+    roleLabel: 'Koordinator Program PKP & SPM',
+    status: 'active',
+    categoryType: 'internal'
+  },
+  {
+    id: 'user-koor-prog-3',
+    name: 'Aries Styawati, SKL',
+    email: 'aries.koor.kesling@puskesmaskepanjen.id',
+    nip: '198412102008012004',
+    role: 'koordinator_program',
+    unit: 'p2m_kesling',
+    unitName: 'Program Kesehatan Lingkungan & P2M',
+    roleLabel: 'Koordinator Program Kesling',
+    status: 'active',
+    categoryType: 'internal'
+  },
+  {
+    id: 'user-koor-prog-4',
+    name: 'Budi Astutik, S.Tr.Keb.',
+    email: 'budi.koor.posyandu@puskesmaskepanjen.id',
+    nip: '198701042011012002',
+    role: 'koordinator_program',
+    unit: 'dewasa_lansia',
+    unitName: 'Program CKG & Pemberdayaan Posyandu',
+    roleLabel: 'Koordinator Program CKG & Posyandu',
+    status: 'active',
+    categoryType: 'internal'
+  },
+
+  // --- LOGIN JEJARING (PUSTU, MITRA, POSYANDU) ---
+  {
+    id: 'user-jejaring-pustu-1',
+    name: 'Bd. Rita Setyowati (Pustu Mangunrejo)',
+    email: 'pustu.mangunrejo@puskesmaskepanjen.id',
+    nip: '198903112012032004',
+    role: 'jejaring_pustu',
+    unit: 'lintas_klaster',
+    unitName: 'Jejaring Pustu Mangunrejo',
+    roleLabel: 'Pustu Mangunrejo',
+    status: 'active',
+    categoryType: 'jejaring',
+    pustuName: 'Pustu Mangunrejo',
+    villageName: 'Desa Mangunrejo'
+  },
+  {
+    id: 'user-jejaring-pustu-2',
+    name: 'Bd. Setyo Rahayu (Pustu Talangagung)',
+    email: 'pustu.talangagung@puskesmaskepanjen.id',
+    nip: '198607152010012011',
+    role: 'jejaring_pustu',
+    unit: 'lintas_klaster',
+    unitName: 'Jejaring Pustu Talangagung',
+    roleLabel: 'Pustu Talangagung',
+    status: 'active',
+    categoryType: 'jejaring',
+    pustuName: 'Pustu Talangagung',
+    villageName: 'Desa Talangagung'
+  },
+  {
+    id: 'user-jejaring-mitra-1',
+    name: 'dr. Rahmat Hidayat (Klinik Utama Kepanjen)',
+    email: 'mitra.klinikutama@puskesmaskepanjen.id',
+    nip: 'MITRA-KLINIK-01',
+    role: 'jejaring_mitra',
+    unit: 'lintas_klaster',
+    unitName: 'Mitra Klinik & Faskes Swasta',
+    roleLabel: 'Mitra Puskesmas',
+    status: 'active',
+    categoryType: 'jejaring',
+    mitraName: 'Klinik Utama Kepanjen'
+  },
+  {
+    id: 'user-jejaring-posyandu-1',
+    name: 'Kader Ibu Sri Wahyuni (Posyandu Mawar 01 Kepanjen)',
+    email: 'posyandu.mawar01@puskesmaskepanjen.id',
+    nip: 'KADER-POSYANDU-001',
+    role: 'jejaring_posyandu',
+    unit: 'kia',
+    unitName: 'Posyandu Mawar 01 — Kel. Kepanjen',
+    roleLabel: 'Kader Posyandu',
+    status: 'active',
+    categoryType: 'jejaring',
+    posyanduId: 'posyandu-1',
+    posyanduName: 'Posyandu Mawar 01',
+    villageName: 'Kelurahan Kepanjen'
+  },
+  {
+    id: 'user-jejaring-posyandu-2',
+    name: 'Kader Ibu Endang Rahayu (Posyandu Melati 01 Ardirejo)',
+    email: 'posyandu.melati01@puskesmaskepanjen.id',
+    nip: 'KADER-POSYANDU-007',
+    role: 'jejaring_posyandu',
+    unit: 'kia',
+    unitName: 'Posyandu Melati 01 — Kel. Ardirejo',
+    roleLabel: 'Kader Posyandu',
+    status: 'active',
+    categoryType: 'jejaring',
+    posyanduId: 'posyandu-7',
+    posyanduName: 'Posyandu Melati 01',
+    villageName: 'Kelurahan Ardirejo'
   }
 ];
 

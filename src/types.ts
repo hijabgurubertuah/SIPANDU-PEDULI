@@ -1,4 +1,17 @@
-export type UserRole = 'super_admin' | 'admin' | 'pimpinan' | 'koordinator' | 'petugas' | 'viewer';
+export type UserRole = 
+  | 'admin_master' 
+  | 'admin_konten' 
+  | 'ka_tu' 
+  | 'pj_klaster' 
+  | 'koordinator_program' 
+  | 'jejaring_pustu' 
+  | 'jejaring_mitra' 
+  | 'jejaring_posyandu' 
+  | 'super_admin' 
+  | 'pimpinan' 
+  | 'koordinator' 
+  | 'petugas' 
+  | 'viewer';
 
 export type UnitCluster = 
   | 'tu' 
@@ -20,6 +33,23 @@ export interface UserAccount {
   roleLabel: string;
   avatar?: string;
   status: 'active' | 'inactive';
+  categoryType?: 'internal' | 'jejaring';
+  posyanduId?: string;
+  posyanduName?: string;
+  villageName?: string;
+  pustuName?: string;
+  mitraName?: string;
+}
+
+export interface PosyanduItem {
+  id: string;
+  name: string;
+  village: string;
+  rw?: string;
+  kaderPic?: string;
+  cadreCount?: number;
+  activeStatus: 'Aktif Mandiri' | 'Aktif Purnama' | 'Aktif Madya' | 'Aktif Pratama';
+  phone?: string;
 }
 
 export interface ServiceItem {

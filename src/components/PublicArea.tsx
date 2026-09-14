@@ -840,6 +840,34 @@ export default function PublicArea({
             </p>
           </div>
 
+          {/* RME Disclaimer Banner */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-emerald-900 to-teal-900 text-white shadow-lg space-y-2 border border-emerald-700/50">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-400 text-emerald-950">
+                PENTING / PENJELASAN INTEGRASI
+              </span>
+              <span className="text-xs font-bold text-emerald-200">
+                SIPANDU PEDULI Puskesmas Kepanjen
+              </span>
+            </div>
+            <h2 className="text-sm sm:text-base font-extrabold text-white">
+              SIPANDU PEDULI BUKAN Aplikasi Rekam Medis Elektronik (RME)
+            </h2>
+            <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed">
+              SIPANDU PEDULI berfungsi sebagai <strong>Link Gateway & Pusat Akses Informasi Terpadu</strong>. Platform ini <strong>tidak menyimpan atau mengelola data rekam medis pasien secara langsung</strong> (seperti diagnosis, riwayat medis, atau data medis individual). Data rekam medis tetap dikelola pada sistem sumber resminya:
+            </p>
+            <div className="pt-2 flex flex-wrap gap-2 text-xs">
+              <a href="https://malang.epuskesmas.id/login" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-xl bg-white text-emerald-950 font-bold hover:bg-emerald-100 transition flex items-center gap-1.5 shadow-xs">
+                <span>1. Akses e-Puskesmas Malang (RME)</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <a href="https://pcarejkn.bpjs-kesehatan.go.id/eclaim/login" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-xl bg-emerald-800 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5 border border-emerald-600 shadow-xs">
+                <span>2. Akses PCare JKN BPJS</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {systems.map((sys) => (
               <div
