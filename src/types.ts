@@ -186,6 +186,12 @@ export interface SiteSettings {
   headerBadgeText: string;
   heroTitle?: string;
   heroSubtitle?: string;
+  complaintWebhookUrl?: string;
+  complaintSpreadsheetId?: string;
+  complaintSpreadsheetEmbedUrl?: string;
+  whatsappAdminPhone?: string;
+  whatsappApiKey?: string;
+  whatsappProvider?: 'fonnte' | 'wablas' | 'custom';
 }
 
 export interface MarqueeSettings {

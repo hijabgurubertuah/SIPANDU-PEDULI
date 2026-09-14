@@ -427,6 +427,8 @@ export default function App() {
             onUpdateNewsList={setNewsList}
             dockConfig={dockConfig}
             onUpdateDockConfig={setDockConfig}
+            complaints={complaints}
+            onUpdateComplaints={setComplaints}
             adminPassword={adminPassword}
             onUpdateAdminPassword={setAdminPassword}
             onExitAdmin={() => {

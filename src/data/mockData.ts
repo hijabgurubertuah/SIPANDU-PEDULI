@@ -1012,7 +1012,13 @@ export const DEFAULT_SITE_SETTINGS: import('../types').SiteSettings = {
   logoUrl: '',
   headerBadgeText: 'Portal Ekosistem Informasi Kesehatan Puskesmas Kepanjen',
   heroTitle: 'Satu Akses Terpadu Layanan Kesehatan Kepanjen',
-  heroSubtitle: 'SIPANDU PEDULI (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi) sebagai Portal & Integration Hub yang menghubungkan masyarakat, Puskesmas, Pustu, 108 Posyandu, dan sistem sumber (RME & PCare BPJS) dengan prinsip One Link, One Click Access.'
+  heroSubtitle: 'SIPANDU PEDULI (Sistem Pantau Data Dukung Pelaksanaan, Dokumentasi, dan Evaluasi) sebagai Portal & Integration Hub yang menghubungkan masyarakat, Puskesmas, Pustu, 108 Posyandu, dan sistem sumber (RME & PCare BPJS) dengan prinsip One Link, One Click Access.',
+  complaintWebhookUrl: '',
+  complaintSpreadsheetId: '',
+  complaintSpreadsheetEmbedUrl: '',
+  whatsappAdminPhone: '08889924444',
+  whatsappApiKey: '',
+  whatsappProvider: 'fonnte'
 };
 
 export const DEFAULT_MARQUEE_SETTINGS: import('../types').MarqueeSettings = {

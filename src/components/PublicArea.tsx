@@ -120,6 +120,24 @@ export default function PublicArea({
 
     onSubmitComplaint(newItem);
     setSubmittedTicket(ticket);
+
+    // Sync to Google Apps Script Webhook (Spreadsheet & WhatsApp) if configured
+    const webhookUrl = siteSettings?.complaintWebhookUrl || localStorage.getItem('sipandu_complaint_webhook_url') || localStorage.getItem('sipandu_gas_url');
+    if (webhookUrl && webhookUrl.startsWith('http')) {
+      try {
+        fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newItem)
+        }).catch((err) => console.warn('Sync to Google Apps Script error:', err));
+      } catch (err) {
+        console.warn('Sync payload error:', err);
+      }
+    }
+
     setReporterName('');
     setReporterContact('');
     setComplaintContent('');

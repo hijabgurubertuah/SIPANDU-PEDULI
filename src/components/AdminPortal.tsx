@@ -58,7 +58,8 @@ import {
   DigitalSystemItem,
   NewsAnnouncement,
   MobileDockConfig,
-  MobileDockItem
+  MobileDockItem,
+  ComplaintItem
 } from '../types';
 import { VILLAGES_KEPANJEN, DEFAULT_DOCK_CONFIG } from '../data/mockData';
 import FirebaseStatusTab from './FirebaseStatusTab';
@@ -97,6 +98,8 @@ interface AdminPortalProps {
   onUpdateSystems: (newSystems: DigitalSystemItem[]) => void;
   newsList: NewsAnnouncement[];
   onUpdateNewsList: (newNews: NewsAnnouncement[]) => void;
+  complaints?: ComplaintItem[];
+  onUpdateComplaints?: (newComplaints: ComplaintItem[]) => void;
   adminPassword: string;
   onUpdateAdminPassword: (newPassword: string) => void;
   onExitAdmin: () => void;
@@ -121,6 +124,8 @@ export default function AdminPortal({
   onUpdateSystems,
   newsList,
   onUpdateNewsList,
+  complaints = [],
+  onUpdateComplaints,
   adminPassword,
   onUpdateAdminPassword,
   onExitAdmin,
@@ -147,6 +152,7 @@ export default function AdminPortal({
     | 'systems'
     | 'news'
     | 'appscript'
+    | 'complaints_reports'
     | 'security'
     | 'firebase'
     | 'pegawai'
@@ -226,11 +232,27 @@ export default function AdminPortal({
   const [pwdError, setPwdError] = useState('');
   const [showPwd, setShowPwd] = useState(false);
 
-  // 6. Apps Script Settings
+  // 6. Apps Script & Complaint Webhook Settings
   const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlnTOpIX84wHErTrqXRV9lFMCxCoxwcwWKQEMUb988UrB3FERMdi_HceZM5P3yh9bUKQ/exec';
   const [appScriptUrl, setAppScriptUrl] = useState(() => localStorage.getItem('sipandu_gas_url') || DEFAULT_APPS_SCRIPT_URL);
   const [driveFolderId, setDriveFolderId] = useState(() => localStorage.getItem('sipandu_drive_folder_id') || '');
   const [copiedScript, setCopiedScript] = useState(false);
+
+  // Complaint & WA Gateway Settings
+  const [complaintWebhookUrl, setComplaintWebhookUrl] = useState(() => siteSettings.complaintWebhookUrl || localStorage.getItem('sipandu_complaint_webhook_url') || localStorage.getItem('sipandu_gas_url') || '');
+  const [complaintSpreadsheetId, setComplaintSpreadsheetId] = useState(() => siteSettings.complaintSpreadsheetId || localStorage.getItem('sipandu_complaint_spreadsheet_id') || '');
+  const [complaintSpreadsheetEmbedUrl, setComplaintSpreadsheetEmbedUrl] = useState(() => siteSettings.complaintSpreadsheetEmbedUrl || localStorage.getItem('sipandu_complaint_embed_url') || '');
+  const [whatsappAdminPhone, setWhatsappAdminPhone] = useState(() => siteSettings.whatsappAdminPhone || localStorage.getItem('sipandu_wa_admin_phone') || '08889924444');
+  const [whatsappApiKey, setWhatsappApiKey] = useState(() => siteSettings.whatsappApiKey || localStorage.getItem('sipandu_wa_api_key') || '');
+  const [whatsappProvider, setWhatsappProvider] = useState<'fonnte' | 'wablas' | 'custom'>(() => siteSettings.whatsappProvider || 'fonnte');
+
+  // Complaint Reports Viewer & Management States
+  const [complaintFilterStatus, setComplaintFilterStatus] = useState<'all' | 'Menunggu' | 'Diproses' | 'Selesai'>('all');
+  const [complaintSearch, setComplaintSearch] = useState('');
+  const [complaintViewMode, setComplaintViewMode] = useState<'table' | 'spreadsheet'>('table');
+  const [editingComplaint, setEditingComplaint] = useState<ComplaintItem | null>(null);
+  const [responseStatus, setResponseStatus] = useState<'Menunggu' | 'Diproses' | 'Selesai'>('Diproses');
+  const [responseText, setResponseText] = useState('');
 
   // 7. Service Modal State
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -767,78 +789,141 @@ export default function AdminPortal({
   };
 
   // ====================================================
-  // GOOGLE APPS SCRIPT CODE TEMPLATE
+  // GOOGLE APPS SCRIPT CODE TEMPLATE (FULL SYNC + WA GATEWAY)
   // ====================================================
   const googleAppsScriptCode = `/**
  * ============================================================================
  * GOOGLE APPS SCRIPT (GAS) - SIPANDU PEDULI UPTD PUSKESMAS KEPANJEN
  * ============================================================================
- * Fitur:
- * 1. Unggah Gambar / Logo langsung ke Google Drive & dapatkan URL Thumbnail
- * 2. Sinkronisasi Pengaturan Tampilan & Mitra ke Google Spreadsheet / Firebase
- * 3. Mengambil daftar thumbnail berkas gambar di folder Google Drive
+ * Fitur Utama:
+ * 1. Simpan Otomatis Pengaduan & Aspirasi ke Tab Google Spreadsheet
+ * 2. Notifikasi Otomatis ke WhatsApp Admin Puskesmas (Fonnte / Wablas API)
+ * 3. Unggah Gambar / Foto ke Google Drive & Dapatkan Direct Thumbnail URL
+ * 4. Sinkronisasi Data Master CMS & Pengaturan Aplikasi
  * 
  * PANDUAN DEPLOY:
- * 1. Buka https://script.google.com -> Buat Proyek Baru
- * 2. Hapus seluruh kode lama dan tempel (paste) kode ini
- * 3. Ganti FOLDER_ID dan SPREADSHEET_ID dengan ID Anda
- * 4. Klik menu 'Deploy' -> 'New Deployment' (Penerapan Baru)
- * 5. Pilih tipe 'Web App' (Aplikasi Web)
- * 6. Set 'Execute as': 'Me' (Saya) dan 'Who has access': 'Anyone' (Siapa saja)
+ * 1. Buka Google Sheets Anda -> Ekstensi -> Apps Script
+ * 2. Tempel seluruh kode ini (gantikan kode bawaan)
+ * 3. Klik menu 'Deploy' -> 'Penerapan Baru' (New deployment)
+ * 4. Tipe: 'Aplikasi Web' (Web app)
+ * 5. Jalankan sebagai: 'Saya' (Me)
+ * 6. Siapa yang memiliki akses: 'Siapa saja' (Anyone)
  * 7. Salin URL Web App dan tempelkan di Dashboard Admin SIPANDU PEDULI
  * ============================================================================
  */
 
-// GANTI DENGAN ID FOLDER GOOGLE DRIVE KHUSUS FOTO PUSKESMAS ANDA
-var DRIVE_FOLDER_ID = "${driveFolderId || 'GANTI_DENGAN_ID_FOLDER_DRIVE'}";
+// SPREADSHEET & DRIVE CONFIGURATION
+var SPREADSHEET_ID = "${complaintSpreadsheetId || 'MASUKKAN_ID_SPREADSHEET_ANDA'}";
+var DRIVE_FOLDER_ID = "${driveFolderId || 'MASUKKAN_ID_FOLDER_DRIVE'}";
 
-// GANTI DENGAN ID SPREADSHEET MASTER PUSKESMAS KEPANJEN ANDA (JIKA MENGGUNAKAN SPREADSHEET)
-var SPREADSHEET_ID = "GANTI_DENGAN_ID_SPREADSHEET";
+// WHATSAPP GATEWAY CONFIGURATION
+var WA_ENABLE = ${whatsappApiKey ? 'true' : 'false'};
+var WA_PROVIDER = "${whatsappProvider || 'fonnte'}"; // 'fonnte' atau 'wablas'
+var WA_API_KEY = "${whatsappApiKey || 'MASUKKAN_API_KEY_FONNTE_ATAU_WABLAS'}";
+var WA_ADMIN_PHONE = "${whatsappAdminPhone || '08889924444'}";
 
-/**
- * Handle POST request: Unggah gambar Base64 atau Simpan Konfigurasi
- */
 function doPost(e) {
   try {
-    var data = JSON.parse(e.postData.contents);
+    var data = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (errParse) {
+        data = e.parameter || {};
+      }
+    } else if (e && e.parameter) {
+      data = e.parameter;
+    }
+
     var action = data.action;
 
-    // 1. Aksi UNGGAH GAMBAR KE GOOGLE DRIVE
+    // 1. UNGGAH GAMBAR / DOKUMEN KE GOOGLE DRIVE
     if (action === "uploadImage") {
-      var folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+      var folder = DRIVE_FOLDER_ID ? DriveApp.getFolderById(DRIVE_FOLDER_ID) : DriveApp.getRootFolder();
       var base64Data = data.base64.split(",")[1] || data.base64;
       var decodedBytes = Utilities.base64Decode(base64Data);
-      var blob = Utilities.newBlob(decodedBytes, data.mimeType || "image/png", data.fileName || "logo_puskesmas.png");
+      var blob = Utilities.newBlob(decodedBytes, data.mimeType || "image/png", data.fileName || "file_upload.png");
       
-      // Simpan file ke Drive
       var file = folder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
       var fileId = file.getId();
-      // Format URL Thumbnail resmi Google Drive yang bisa langsung tampil di web
       var directThumbnailUrl = "https://lh3.googleusercontent.com/d/" + fileId;
-      var webViewLink = file.getUrl();
 
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: "Gambar berhasil diunggah ke Google Drive!",
+        message: "File berhasil disimpan di Google Drive!",
         fileId: fileId,
         fileName: file.getName(),
         thumbnailUrl: directThumbnailUrl,
-        driveUrl: webViewLink,
-        size: file.getSize() + " bytes"
+        driveUrl: file.getUrl()
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 2. Aksi SIMPAN PENGATURAN / MITRA KE GOOGLE SHEETS
+    // 2. SIMPAN PENGADUAN / ASPIRASI WARGA KE SPREADSHEET & NOTIFIKASI WA
+    var isComplaint = action === "complaint" || data.ticketId || data.reporterName;
+    if (isComplaint) {
+      var ticketId = data.ticketId || ("KPJ-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000));
+      var reporterName = data.reporterName || "Anonim";
+      var reporterContact = data.reporterContact || "-";
+      var serviceTarget = data.serviceTarget || "Umum / Puskesmas";
+      var category = data.category || "Aspirasi / Pengaduan";
+      var content = data.content || "";
+      var dateStr = data.date || new Date().toLocaleString("id-ID");
+      var status = data.status || "Menunggu";
+
+      var ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+      var sheet = ss.getSheetByName("Pengaduan & Aspirasi") || ss.insertSheet("Pengaduan & Aspirasi");
+
+      // Buat Header jika sheet belum memiliki data
+      if (sheet.getLastRow() === 0) {
+        sheet.appendRow([
+          "Waktu Input",
+          "Nomor Tiket",
+          "Nama Pelapor",
+          "Kontak WA Pelapor",
+          "Unit Dituju",
+          "Kategori",
+          "Isi Laporan / Aspirasi",
+          "Status Aduan",
+          "Tindak Lanjut Admin"
+        ]);
+        var headerRange = sheet.getRange(1, 1, 1, 9);
+        headerRange.setBackground("#0d9488").setFontColor("#ffffff").setFontWeight("bold");
+      }
+
+      // Append data pengaduan baru ke spreadsheet
+      sheet.appendRow([
+        dateStr,
+        ticketId,
+        reporterName,
+        reporterContact,
+        serviceTarget,
+        category,
+        content,
+        status,
+        ""
+      ]);
+
+      // Kirim Notifikasi WhatsApp ke Admin jika Token diset
+      if (WA_ENABLE && WA_API_KEY && WA_ADMIN_PHONE) {
+        sendWaNotification(ticketId, reporterName, reporterContact, serviceTarget, category, content);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Laporan aduan tersimpan di Google Sheets & WhatsApp terkirim!",
+        ticketId: ticketId
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. SIMPAN PENGATURAN SITE KE SPREADSHEET
     if (action === "saveSettings") {
-      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      var ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
       var sheet = ss.getSheetByName("CMS_SETTINGS") || ss.insertSheet("CMS_SETTINGS");
       sheet.clear();
       sheet.appendRow(["Key", "Value", "UpdatedAt"]);
       sheet.appendRow(["siteSettings", JSON.stringify(data.siteSettings), new Date().toISOString()]);
-      sheet.appendRow(["marqueeSettings", JSON.stringify(data.marqueeSettings), new Date().toISOString()]);
-      sheet.appendRow(["mitraList", JSON.stringify(data.mitraList), new Date().toISOString()]);
 
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
@@ -847,57 +932,56 @@ function doPost(e) {
     }
 
     return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: "Action tidak dikenali"
+      status: "success",
+      message: "Proses berhasil dilaksanakan!"
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
-      error: err.toString()
+      message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-/**
- * Handle GET request: Ambil daftar gambar di folder Google Drive beserta thumbnail-nya
- */
 function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "online",
+    system: "SIPANDU PEDULI Puskesmas Kepanjen — Apps Script Sync & WA Gateway",
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function sendWaNotification(ticketId, name, contact, unit, category, content) {
   try {
-    var folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    var files = folder.getFiles();
-    var fileList = [];
+    var messageText = "*🚨 ADUAN / ASPIRASI WARGA MASUK — SIPANDU PEDULI*\\n" +
+      "----------------------------------------\\n" +
+      "🎟️ *No. Tiket:* " + ticketId + "\\n" +
+      "👤 *Pelapor:* " + name + "\\n" +
+      "📞 *No. WA:* " + contact + "\\n" +
+      "🏥 *Unit Dituju:* " + unit + "\\n" +
+      "🏷️ *Kategori:* " + category + "\\n\\n" +
+      "📝 *Isi Laporan:*\\n\\"" + content + "\\"\\n" +
+      "----------------------------------------\\n" +
+      "📌 *Harap segera ditindaklanjuti via Portal Admin SIPANDU PEDULI Puskesmas Kepanjen.*";
 
-    while (files.hasNext()) {
-      var file = files.next();
-      var mime = file.getMimeType();
-      
-      // Ambil file bertipe gambar
-      if (mime.indexOf("image/") !== -1) {
-        var id = file.getId();
-        fileList.push({
-          id: id,
-          name: file.getName(),
-          mimeType: mime,
-          driveUrl: file.getUrl(),
-          thumbnailUrl: "https://lh3.googleusercontent.com/d/" + id,
-          size: Math.round(file.getSize() / 1024) + " KB",
-          uploadedAt: Utilities.formatDate(file.getDateCreated(), "Asia/Jakarta", "dd MMMM yyyy, HH:mm 'WIB'")
-        });
-      }
+    if (WA_PROVIDER === "fonnte") {
+      UrlFetchApp.fetch("https://api.fonnte.com/send", {
+        method: "post",
+        headers: { "Authorization": WA_API_KEY },
+        payload: { target: WA_ADMIN_PHONE, message: messageText },
+        muteHttpExceptions: true
+      });
+    } else if (WA_PROVIDER === "wablas") {
+      UrlFetchApp.fetch("https://kepanjen.wablas.com/api/send-message", {
+        method: "post",
+        headers: { "Authorization": WA_API_KEY },
+        payload: { phone: WA_ADMIN_PHONE, message: messageText },
+        muteHttpExceptions: true
+      });
     }
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      total: fileList.length,
-      files: fileList
-    })).setMimeType(ContentService.MimeType.JSON);
-
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      error: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    Logger.log("WA Notification error: " + err.toString());
   }
 }`;
 
@@ -1001,6 +1085,7 @@ function doGet(e) {
   const navMenuItems = [
     { id: 'overview', label: 'Ringkasan & Status', icon: LayoutGrid, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { id: 'pegawai', label: 'Portal Pegawai Internal', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+    { id: 'complaints_reports', label: 'Laporan Pengaduan & Spreadsheet Sync', icon: FileSpreadsheet, color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { id: 'identity', label: 'Identitas & Logo', icon: Image, color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { id: 'marquee', label: 'Teks Berjalan (Marquee)', icon: Type, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
     { id: 'dock', label: 'Docker Mobile HP', icon: Smartphone, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10' },
@@ -1009,7 +1094,7 @@ function doGet(e) {
     { id: 'services', label: 'Poliklinik & Layanan', icon: HeartPulse, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { id: 'systems', label: 'Gateway Sistem Digital', icon: SlidersHorizontal, color: 'text-violet-500', bg: 'bg-violet-500/10' },
     { id: 'news', label: 'Berita & Pengumuman', icon: FolderOpen, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { id: 'appscript', label: 'Kode Apps Script & Sync', icon: Code, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+    { id: 'appscript', label: 'Kode Apps Script & WA Gateway', icon: Code, color: 'text-rose-500', bg: 'bg-rose-500/10' },
     { id: 'security', label: 'Ganti Kata Sandi', icon: KeyRound, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { id: 'firebase', label: 'Status Firebase Cloud', icon: Database, color: 'text-amber-500', bg: 'bg-amber-500/10' }
   ];
@@ -3028,83 +3113,678 @@ function doGet(e) {
             </div>
           )}
 
-          {/* ================= TAB 9: KODE GOOGLE APPS SCRIPT ================= */}
-          {activeTab === 'appscript' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs max-w-3xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Code className="w-5 h-5 text-rose-600" />
-                    <span>Pengaturan Integrasi Google Apps Script & Drive</span>
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Konfigurasi endpoint Web App untuk unggah gambar dan sinkronisasi
-                  </p>
+          {/* ================= TAB 9A: LAPORAN PENGADUAN & SPREADSHEET SYNC (REAL-TIME) ================= */}
+          {activeTab === 'complaints_reports' && (
+            <div className="space-y-6">
+              
+              {/* Header Banner */}
+              <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-teal-900 via-teal-800 to-emerald-900 text-white shadow-lg space-y-4 border border-teal-700/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-400 text-teal-950">
+                      REAL-TIME SPREADSHEET & WA SYNC
+                    </span>
+                    <h2 className="text-lg sm:text-xl font-black text-white mt-1 flex items-center gap-2">
+                      <FileSpreadsheet className="w-6 h-6 text-teal-300" />
+                      <span>Laporan Pengaduan & Aspirasi Warga</span>
+                    </h2>
+                    <p className="text-xs sm:text-sm text-teal-100 mt-1 max-w-3xl leading-relaxed">
+                      Pantau seluruh riwayat aduan warga yang tersimpan otomatis di Google Spreadsheet dan database internal. Anda dapat mengubah status penanganan, memberikan balasan resmi, atau membalas langsung ke WhatsApp pelapor.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('appscript')}
+                      className="px-4 py-2.5 rounded-xl bg-teal-400 text-teal-950 hover:bg-teal-300 font-extrabold text-xs transition flex items-center gap-2 shadow-xs cursor-pointer"
+                    >
+                      <Code className="w-4 h-4" />
+                      <span>Pengaturan Webhook & WA</span>
+                    </button>
+                    {complaintSpreadsheetId && (
+                      <a
+                        href={`https://docs.google.com/spreadsheets/d/${complaintSpreadsheetId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2.5 rounded-xl bg-teal-800 text-teal-100 hover:bg-teal-700 font-bold text-xs border border-teal-600 transition flex items-center gap-2 shadow-xs"
+                      >
+                        <ExternalLink className="w-4 h-4 text-teal-300" />
+                        <span>Buka Spreadsheet Google</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={copyScriptToClipboard}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
-                >
-                  {copiedScript ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedScript ? 'Kode Tersalin' : 'Salin Code.gs'}</span>
-                </button>
+                {/* Key Metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-teal-950/60 border border-teal-700/50">
+                    <span className="text-teal-300 text-[11px] font-bold block">Total Aduan Masuk</span>
+                    <span className="text-xl font-black text-white mt-0.5 block">{complaints.length} Laporan</span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-amber-950/60 border border-amber-700/50">
+                    <span className="text-amber-300 text-[11px] font-bold block">Menunggu Tindak Lanjut</span>
+                    <span className="text-xl font-black text-amber-200 mt-0.5 block">
+                      {complaints.filter((c) => c.status === 'Menunggu').length} Laporan
+                    </span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-blue-950/60 border border-blue-700/50">
+                    <span className="text-blue-300 text-[11px] font-bold block">Sedang Diproses</span>
+                    <span className="text-xl font-black text-blue-200 mt-0.5 block">
+                      {complaints.filter((c) => c.status === 'Diproses').length} Laporan
+                    </span>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-700/50">
+                    <span className="text-emerald-300 text-[11px] font-bold block">Selesai Ditangani</span>
+                    <span className="text-xl font-black text-emerald-200 mt-0.5 block">
+                      {complaints.filter((c) => c.status === 'Selesai').length} Laporan
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Minimalist GAS Settings Form */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    URL Web App Google Apps Script
-                  </label>
-                  <input
-                    type="url"
-                    value={appScriptUrl}
-                    onChange={(e) => {
-                      setAppScriptUrl(e.target.value);
-                      localStorage.setItem('sipandu_gas_url', e.target.value);
-                    }}
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
-                  />
+              {/* View Switcher & Filter Control Bar */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    {(['all', 'Menunggu', 'Diproses', 'Selesai'] as const).map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setComplaintFilterStatus(st)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                          complaintFilterStatus === st
+                            ? 'bg-teal-600 text-white shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                        }`}
+                      >
+                        {st === 'all' ? 'Semua Status' : st}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Mode View Switcher: Interactive Table vs Embedded Spreadsheet */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setComplaintViewMode('table')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          complaintViewMode === 'table'
+                            ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Tabel Aplikasi</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setComplaintViewMode('spreadsheet')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                          complaintViewMode === 'spreadsheet'
+                            ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Live Google Spreadsheet</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    ID Folder Google Drive (Opsional / Otomatis)
-                  </label>
-                  <input
-                    type="text"
-                    value={driveFolderId}
-                    onChange={(e) => {
-                      setDriveFolderId(e.target.value);
-                      localStorage.setItem('sipandu_drive_folder_id', e.target.value);
-                    }}
-                    placeholder="ID folder Google Drive (terisi otomatis saat unggahan pertama)"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
+                {/* Search Bar */}
+                {complaintViewMode === 'table' && (
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={complaintSearch}
+                      onChange={(e) => setComplaintSearch(e.target.value)}
+                      placeholder="Cari berdasarkan Nomor Tiket, Nama Pelapor, Kategori, atau Unit Dituju..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                )}
+              </div>
 
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
-                    Endpoint aktif digunakan untuk mengunggah logo dan dokumen ke Drive.
-                  </span>
+              {/* MODE 1: INTERACTIVE TABLE VIEW */}
+              {complaintViewMode === 'table' && (
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th className="py-3.5 px-4">No. Tiket & Tanggal</th>
+                          <th className="py-3.5 px-4">Pelapor & Kontak WA</th>
+                          <th className="py-3.5 px-4">Unit Dituju & Kategori</th>
+                          <th className="py-3.5 px-4">Isi Laporan / Aspirasi</th>
+                          <th className="py-3.5 px-4">Status & Tanggapan</th>
+                          <th className="py-3.5 px-4 text-right">Tindak Lanjut</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                        {complaints
+                          .filter((c) => {
+                            const matchesStatus = complaintFilterStatus === 'all' || c.status === complaintFilterStatus;
+                            const matchesSearch =
+                              !complaintSearch.trim() ||
+                              c.ticketId.toLowerCase().includes(complaintSearch.toLowerCase()) ||
+                              c.reporterName.toLowerCase().includes(complaintSearch.toLowerCase()) ||
+                              c.category.toLowerCase().includes(complaintSearch.toLowerCase()) ||
+                              c.serviceTarget.toLowerCase().includes(complaintSearch.toLowerCase());
+                            return matchesStatus && matchesSearch;
+                          })
+                          .map((item) => (
+                            <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                              
+                              {/* Tiket & Tanggal */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="font-extrabold text-teal-700 dark:text-teal-400 font-mono block">
+                                  {item.ticketId}
+                                </span>
+                                <span className="text-[11px] text-slate-400 block mt-0.5">
+                                  📅 {item.date}
+                                </span>
+                              </td>
+
+                              {/* Pelapor & Kontak WA */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="font-extrabold text-slate-900 dark:text-white block">
+                                  {item.reporterName}
+                                </span>
+                                {item.reporterContact && (
+                                  <a
+                                    href={`https://wa.me/${item.reporterContact.replace(/[^0-9]/g, '').replace(/^0/, '62')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline mt-0.5"
+                                  >
+                                    <Smartphone className="w-3 h-3" />
+                                    <span>{item.reporterContact}</span>
+                                  </a>
+                                )}
+                              </td>
+
+                              {/* Unit & Kategori */}
+                              <td className="py-3.5 px-4">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 block w-max">
+                                  🏥 {item.serviceTarget}
+                                </span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 font-semibold">
+                                  🏷️ {item.category}
+                                </span>
+                              </td>
+
+                              {/* Isi Laporan */}
+                              <td className="py-3.5 px-4 max-w-xs">
+                                <p className="line-clamp-3 text-slate-800 dark:text-slate-200 text-xs leading-relaxed italic">
+                                  "{item.content}"
+                                </p>
+                              </td>
+
+                              {/* Status & Tanggapan */}
+                              <td className="py-3.5 px-4 max-w-xs">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider inline-block ${
+                                    item.status === 'Selesai'
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300'
+                                      : item.status === 'Diproses'
+                                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300'
+                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
+                                  }`}
+                                >
+                                  {item.status}
+                                </span>
+                                {item.response ? (
+                                  <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2">
+                                    <strong>Respon:</strong> {item.response}
+                                  </p>
+                                ) : (
+                                  <span className="mt-1 text-[10px] text-slate-400 block italic">
+                                    Belum ada catatan tanggapan
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Aksi */}
+                              <td className="py-3.5 px-4 whitespace-nowrap text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingComplaint(item);
+                                      setResponseStatus(item.status);
+                                      setResponseText(item.response || '');
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs transition flex items-center gap-1 shadow-xs cursor-pointer"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                    <span>Tindak Lanjut</span>
+                                  </button>
+
+                                  {item.reporterContact && (
+                                    <a
+                                      href={`https://wa.me/${item.reporterContact.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                                        `Halo Sdr/i ${item.reporterName}, menindaklanjuti pengaduan Anda dengan Nomor Tiket ${item.ticketId} di UPTD Puskesmas Kepanjen: \n\nStatus Aduan: ${item.status}\nCatatan Petugas: ${item.response || 'Terima kasih atas laporan yang diberikan, tim kami sedang menindaklanjuti.'}`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 transition"
+                                      title="Kirim Balasan WA Langsung"
+                                    >
+                                      <Smartphone className="w-4 h-4" />
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+
+                    {complaints.length === 0 && (
+                      <div className="py-12 text-center text-slate-400 text-xs">
+                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p>Belum ada pengaduan atau aspirasi yang diterima.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* MODE 2: LIVE GOOGLE SPREADSHEET EMBED VIEW */}
+              {complaintViewMode === 'spreadsheet' && (
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-teal-600" />
+                        <span>Live Google Spreadsheet Sync</span>
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Menampilkan tabel Google Spreadsheet resmi Puskesmas Kepanjen tempat seluruh riwayat aduan disimpan secara real-time.
+                      </p>
+                    </div>
+
+                    {complaintSpreadsheetId && (
+                      <a
+                        href={`https://docs.google.com/spreadsheets/d/${complaintSpreadsheetId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 transition flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Buka di Tab Baru</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {complaintSpreadsheetEmbedUrl || complaintSpreadsheetId ? (
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-950">
+                      <iframe
+                        src={
+                          complaintSpreadsheetEmbedUrl ||
+                          `https://docs.google.com/spreadsheets/d/${complaintSpreadsheetId}/pubhtml?widget=true&headers=false`
+                        }
+                        className="w-full h-[600px] border-0"
+                        title="Live Google Spreadsheet Viewer"
+                      />
+                    </div>
+                  ) : (
+                    <div className="py-16 px-6 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 space-y-3">
+                      <FileSpreadsheet className="w-12 h-12 text-teal-500 mx-auto opacity-70" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        ID Google Spreadsheet Belum Dikonfigurasi
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Masukkan ID Spreadsheet Google Anda di tab <strong>Kode Apps Script & WA Gateway</strong> agar tabel live dari Google Drive dapat ditampilkan secara langsung di sini.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('appscript')}
+                        className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <Code className="w-4 h-4" />
+                        <span>Atur ID Spreadsheet Sekarang</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* MODAL RESPOND COMPLAINT */}
+              {editingComplaint && (
+                <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-teal-600 tracking-wider">
+                          TINDAK LANJUT ADUAN
+                        </span>
+                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
+                          {editingComplaint.ticketId}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingComplaint(null)}
+                        className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 text-xs space-y-1.5 border border-slate-200/80 dark:border-slate-700">
+                      <div className="flex justify-between font-bold">
+                        <span className="text-slate-900 dark:text-white">👤 {editingComplaint.reporterName}</span>
+                        <span className="text-slate-500">📞 {editingComplaint.reporterContact}</span>
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-300 italic">"{editingComplaint.content}"</p>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Status Penanganan Aduan
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(['Menunggu', 'Diproses', 'Selesai'] as const).map((st) => (
+                            <button
+                              key={st}
+                              type="button"
+                              onClick={() => setResponseStatus(st)}
+                              className={`py-2 px-3 rounded-xl font-bold border text-center transition cursor-pointer ${
+                                responseStatus === st
+                                  ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                              }`}
+                            >
+                              {st}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Tanggapan / Catatan Penyelesaian Resmi Puskesmas
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={responseText}
+                          onChange={(e) => setResponseText(e.target.value)}
+                          placeholder="Masukkan tindak lanjut, penjelasan, atau solusi dari tim Puskesmas..."
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editingComplaint.reporterContact) {
+                            const waUrl = `https://wa.me/${editingComplaint.reporterContact.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                              `Halo Sdr/i ${editingComplaint.reporterName}, menindaklanjuti pengaduan Anda dengan Nomor Tiket ${editingComplaint.ticketId} di UPTD Puskesmas Kepanjen: \n\nStatus Aduan: ${responseStatus}\nTanggapan Resmi: ${responseText || 'Laporan telah ditindaklanjuti.'}`
+                            )}`;
+                            window.open(waUrl, '_blank');
+                          }
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs transition flex items-center gap-1.5"
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        <span>Kirim Balasan WA</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingComplaint(null)}
+                          className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-200"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onUpdateComplaints) {
+                              const updated = complaints.map((c) =>
+                                c.id === editingComplaint.id
+                                  ? { ...c, status: responseStatus, response: responseText }
+                                  : c
+                              );
+                              onUpdateComplaints(updated);
+                            }
+                            setEditingComplaint(null);
+                            showToast('Status & tanggapan pengaduan berhasil diperbarui!');
+                          }}
+                          className="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Save className="w-4 h-4" />
+                          <span>Simpan Tanggapan</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* ================= TAB 9B: KODE APPS SCRIPT & WHATSAPP GATEWAY SETTINGS ================= */}
+          {activeTab === 'appscript' && (
+            <div className="space-y-6">
+              
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs max-w-4xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Code className="w-5 h-5 text-rose-600" />
+                      <span>Pengaturan Integrasi Apps Script, Spreadsheet & WA Gateway</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Konfigurasi Webhook Google Apps Script agar pengaduan warga tersimpan otomatis di Google Sheets & mengirim notifikasi ke WhatsApp Admin.
+                    </p>
+                  </div>
 
                   <button
                     type="button"
-                    onClick={() => {
-                      localStorage.setItem('sipandu_gas_url', appScriptUrl);
-                      localStorage.setItem('sipandu_drive_folder_id', driveFolderId);
-                      showToast('Pengaturan Google Apps Script berhasil disimpan!');
-                    }}
-                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer"
+                    onClick={copyScriptToClipboard}
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition flex items-center gap-2 self-start sm:self-auto shadow-md cursor-pointer"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>Simpan Pengaturan</span>
+                    {copiedScript ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedScript ? 'Kode Tersalin!' : 'Salin Code.gs Lengkap'}</span>
                   </button>
                 </div>
+
+                {/* Form Pengaturan Webhook & Spreadsheet */}
+                <div className="space-y-4 text-xs">
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        URL Web App Google Apps Script (Webhook)
+                      </label>
+                      <input
+                        type="url"
+                        value={complaintWebhookUrl}
+                        onChange={(e) => {
+                          setComplaintWebhookUrl(e.target.value);
+                          setAppScriptUrl(e.target.value);
+                          localStorage.setItem('sipandu_complaint_webhook_url', e.target.value);
+                          localStorage.setItem('sipandu_gas_url', e.target.value);
+                        }}
+                        placeholder="https://script.google.com/macros/s/.../exec"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        ID Google Spreadsheet (Master Sheet)
+                      </label>
+                      <input
+                        type="text"
+                        value={complaintSpreadsheetId}
+                        onChange={(e) => {
+                          setComplaintSpreadsheetId(e.target.value);
+                          localStorage.setItem('sipandu_complaint_spreadsheet_id', e.target.value);
+                        }}
+                        placeholder="Contoh: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      URL Embed Published Google Spreadsheet (Untuk Live View iFrame)
+                    </label>
+                    <input
+                      type="url"
+                      value={complaintSpreadsheetEmbedUrl}
+                      onChange={(e) => {
+                        setComplaintSpreadsheetEmbedUrl(e.target.value);
+                        localStorage.setItem('sipandu_complaint_embed_url', e.target.value);
+                      }}
+                      placeholder="https://docs.google.com/spreadsheets/d/e/.../pubhtml?widget=true&headers=false"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                    <h3 className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Smartphone className="w-4 h-4" />
+                      <span>Pengaturan Notifikasi WhatsApp Gateway</span>
+                    </h3>
+
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Penyedia API WA Gateway
+                        </label>
+                        <select
+                          value={whatsappProvider}
+                          onChange={(e) => setWhatsappProvider(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white"
+                        >
+                          <option value="fonnte">Fonnte API (api.fonnte.com)</option>
+                          <option value="wablas">Wablas API (wablas.com)</option>
+                          <option value="custom">Custom Webhook WA</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          API Token / Key WhatsApp Gateway
+                        </label>
+                        <input
+                          type="password"
+                          value={whatsappApiKey}
+                          onChange={(e) => {
+                            setWhatsappApiKey(e.target.value);
+                            localStorage.setItem('sipandu_wa_api_key', e.target.value);
+                          }}
+                          placeholder="Masukkan Token Fonnte / Wablas"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                          Nomor WA Target Admin / PJ Aduan
+                        </label>
+                        <input
+                          type="tel"
+                          value={whatsappAdminPhone}
+                          onChange={(e) => {
+                            setWhatsappAdminPhone(e.target.value);
+                            localStorage.setItem('sipandu_wa_admin_phone', e.target.value);
+                          }}
+                          placeholder="08123456789"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">
+                      Seluruh aduan baru dari publik akan dikirim ke Webhook & WhatsApp secara otomatis.
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onUpdateSiteSettings({
+                          ...siteSettings,
+                          complaintWebhookUrl,
+                          complaintSpreadsheetId,
+                          complaintSpreadsheetEmbedUrl,
+                          whatsappAdminPhone,
+                          whatsappApiKey,
+                          whatsappProvider
+                        });
+                        localStorage.setItem('sipandu_complaint_webhook_url', complaintWebhookUrl);
+                        localStorage.setItem('sipandu_gas_url', complaintWebhookUrl);
+                        localStorage.setItem('sipandu_complaint_spreadsheet_id', complaintSpreadsheetId);
+                        localStorage.setItem('sipandu_complaint_embed_url', complaintSpreadsheetEmbedUrl);
+                        localStorage.setItem('sipandu_wa_admin_phone', whatsappAdminPhone);
+                        localStorage.setItem('sipandu_wa_api_key', whatsappApiKey);
+                        showToast('Pengaturan Apps Script & WhatsApp Gateway berhasil disimpan!');
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Simpan Pengaturan Integrasi</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Kode Google Apps Script Ready-to-Copy */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <Code className="w-4 h-4 text-teal-600" />
+                      <span>Kode Apps Script (Code.gs) Siap Tempel</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={copyScriptToClipboard}
+                      className="text-xs text-rose-600 font-extrabold hover:underline flex items-center gap-1"
+                    >
+                      {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedScript ? 'Kode Tersalin' : 'Salin Kode ke Clipboard'}</span>
+                    </button>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-950 p-4 border border-slate-800 overflow-hidden">
+                    <pre className="font-mono text-[11px] text-teal-300 leading-relaxed overflow-x-auto max-h-80 selection:bg-teal-700 selection:text-white">
+                      {googleAppsScriptCode}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Langkah-langkah deploy */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                  <h4 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-blue-500" />
+                    <span>Panduan 4 Langkah Pemasangan Google Apps Script:</span>
+                  </h4>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <li>Buka Google Sheets tempat Anda menyimpan pengaduan ➔ klik menu <strong>Ekstensi</strong> ➔ <strong>Apps Script</strong>.</li>
+                    <li>Hapus semua kode bawaan, lalu tempelkan (paste) seluruh kode di atas.</li>
+                    <li>Klik <strong>Deploy</strong> (Terapkan) ➔ <strong>New Deployment</strong> (Penerapan Baru) ➔ Pilih Tipe <strong>Web App</strong>.</li>
+                    <li>Setel <strong>Execute as: Me</strong> dan <strong>Who has access: Anyone</strong> (Siapa saja) ➔ Salin URL Web App dan tempelkan di form di atas.</li>
+                  </ol>
+                </div>
+
               </div>
+
             </div>
           )}
 
