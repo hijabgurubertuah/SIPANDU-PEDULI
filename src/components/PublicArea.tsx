@@ -95,8 +95,11 @@ export default function PublicArea({
   // News Modal state
   const [selectedNews, setSelectedNews] = useState<NewsAnnouncement | null>(null);
 
+  // Village Posyandu Modal state
+  const [selectedVillagePosyandu, setSelectedVillagePosyandu] = useState<typeof POSYANDU_VILLAGE_SUMMARY[0] | null>(null);
+
   // Lock body scroll when news modal is open
-  useBodyScrollLock(!!selectedNews);
+  useBodyScrollLock(!!selectedNews || !!selectedVillagePosyandu);
 
   // Filter public downloadable documents
   const publicDocs = documents.filter((d) => d.isPublicDownload);
@@ -330,15 +333,17 @@ export default function PublicArea({
                     href={sys.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-3 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 rounded-xl hover:border-emerald-500 hover:shadow-md transition text-center group"
+                    className="p-3.5 bg-gradient-to-br from-emerald-800 to-teal-950 border border-emerald-700/60 rounded-2xl hover:from-emerald-700 hover:to-teal-900 hover:shadow-lg hover:shadow-emerald-950/10 hover:scale-[1.02] transition-all text-center group flex flex-col justify-between"
                   >
-                    <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition">
-                      <ExternalLink className="w-4 h-4" />
+                    <div>
+                      <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-emerald-900/60 text-emerald-300 flex items-center justify-center group-hover:scale-110 transition border border-emerald-600/30">
+                        <ExternalLink className="w-4 h-4" />
+                      </div>
+                      <div className="text-xs font-bold text-white group-hover:text-emerald-200 transition line-clamp-2">
+                        {sys.name}
+                      </div>
                     </div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {sys.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                    <div className="text-[9px] text-emerald-200 font-bold truncate mt-1.5 px-2 py-0.5 rounded-full bg-emerald-900/40 border border-emerald-800/40 inline-block w-max mx-auto shrink-0">
                       {sys.badge || 'Portal'}
                     </div>
                   </a>
@@ -348,56 +353,58 @@ export default function PublicArea({
           </section>
 
           {/* Highlights: Berita & Pengumuman Terbaru */}
-          <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
-                  Informasi & Pengumuman Terkini
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Kabar kegiatan kesehatan, edukasi masyarakat, dan layanan terpadu Puskesmas Kepanjen
-                </p>
-              </div>
-              <button
-                onClick={() => onSelectTab('informasi')}
-                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-              >
-                <span>Selengkapnya</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {newsList.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700 overflow-hidden shadow-xs hover:shadow-lg transition flex flex-col justify-between"
-                >
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        {item.category}
-                      </span>
-                      <span className="text-[11px] text-slate-400">{item.date}</span>
-                    </div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug mb-2 hover:text-emerald-600 transition">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
-                      {item.excerpt}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                    <span>Oleh: {item.author}</span>
-                    <button
-                      onClick={() => setSelectedNews(item)}
-                      className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
-                    >
-                      Baca Berita
-                    </button>
-                  </div>
+          <section className="py-12 bg-emerald-50/30 dark:bg-emerald-950/15 border-y border-emerald-100/50 dark:border-emerald-900/20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-emerald-950 dark:text-emerald-50">
+                    Informasi & Pengumuman Terkini
+                  </h2>
+                  <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-1">
+                    Kabar kegiatan kesehatan, edukasi masyarakat, dan layanan terpadu Puskesmas Kepanjen
+                  </p>
                 </div>
-              ))}
+                <button
+                  onClick={() => onSelectTab('informasi')}
+                  className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Selengkapnya</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                {newsList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 overflow-hidden shadow-xs hover:shadow-lg hover:border-emerald-500 transition flex flex-col justify-between"
+                  >
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          {item.category}
+                        </span>
+                        <span className="text-[11px] text-slate-400">{item.date}</span>
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug mb-2 hover:text-emerald-600 transition">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
+                        {item.excerpt}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-emerald-50/10 dark:bg-slate-800/20 border-t border-emerald-100/30 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                      <span>Oleh: {item.author}</span>
+                      <button
+                        onClick={() => setSelectedNews(item)}
+                        className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer"
+                      >
+                        Baca Berita
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -1095,10 +1102,10 @@ export default function PublicArea({
           </div>
 
           {/* Section: Direktori Master 108 Posyandu di 18 Desa */}
-          <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white shadow-xl space-y-6 border border-emerald-800/60">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-800 pb-4">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-400 text-emerald-950 border border-emerald-300">
                   Master Data Resmi
                 </span>
                 <h3 className="text-lg font-bold text-white mt-1">
@@ -1107,7 +1114,7 @@ export default function PublicArea({
               </div>
               <div className="text-right">
                 <span className="text-2xl font-black text-emerald-400">108</span>
-                <span className="text-xs text-slate-400 block">Posyandu Aktif Binaan</span>
+                <span className="text-xs text-emerald-200 block">Posyandu Aktif Binaan</span>
               </div>
             </div>
 
@@ -1115,28 +1122,43 @@ export default function PublicArea({
               {POSYANDU_VILLAGE_SUMMARY.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-emerald-500/60 transition"
+                  onClick={() => setSelectedVillagePosyandu(item)}
+                  className="p-4 rounded-2xl bg-emerald-900/40 hover:bg-emerald-850/60 border border-emerald-800/60 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-950/30 transition cursor-pointer group flex flex-col justify-between"
+                  title="Klik untuk melihat seluruh Posyandu"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-emerald-300">{item.village}</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-black">
-                      {item.count} Posyandu
-                    </span>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-emerald-300 group-hover:text-emerald-100 transition">{item.village}</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-black shrink-0">
+                        {item.count} Posyandu
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {item.posyandus.slice(0, 6).map((pName, pIdx) => {
+                        const isILP = pName.toLowerCase().includes('ilp');
+                        return (
+                          <span
+                            key={pIdx}
+                            className={`px-2 py-0.5 rounded text-[9px] font-semibold border ${
+                              isILP 
+                                ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40' 
+                                : 'bg-emerald-950/80 text-emerald-100/90 border-emerald-800/60'
+                            }`}
+                          >
+                            {pName}
+                          </span>
+                        );
+                      })}
+                      {item.posyandus.length > 6 && (
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold text-emerald-300 bg-emerald-950/90 rounded border border-emerald-800/80 hover:bg-emerald-400 hover:text-emerald-950 transition">
+                          +{item.posyandus.length - 6} lagi
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {item.posyandus.slice(0, 4).map((pName, pIdx) => (
-                      <span
-                        key={pIdx}
-                        className="px-2 py-0.5 rounded bg-slate-900 text-[10px] font-medium text-slate-300 border border-slate-700"
-                      >
-                        {pName}
-                      </span>
-                    ))}
-                    {item.posyandus.length > 4 && (
-                      <span className="px-1.5 py-0.5 text-[10px] text-slate-400">
-                        +{item.posyandus.length - 4} lagi
-                      </span>
-                    )}
+                  <div className="text-[10px] text-emerald-300/70 group-hover:text-emerald-200 mt-3 flex items-center justify-end gap-1 font-semibold">
+                    <span>Lihat Detail</span>
+                    <span>&rarr;</span>
                   </div>
                 </div>
               ))}
@@ -1539,6 +1561,94 @@ export default function PublicArea({
                 className="px-6 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Village Posyandu Details Modal Popup */}
+      {selectedVillagePosyandu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-md transition-opacity"
+            onClick={() => setSelectedVillagePosyandu(null)}
+          />
+          
+          {/* Modal content */}
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-emerald-800/40">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-emerald-900 to-teal-950 text-white">
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-450 text-emerald-950 border border-emerald-300">
+                  Daftar Posyandu Binaan
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-white mt-1">
+                  Wilayah {selectedVillagePosyandu.village}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedVillagePosyandu(null)}
+                className="p-2 bg-emerald-800/50 hover:bg-red-600/80 text-white rounded-full transition-colors border border-emerald-700 cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content list */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-emerald-900 dark:text-emerald-200">Total Posyandu Aktif Terintegrasi</h3>
+                  <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400">Terbina oleh UPTD Puskesmas Kepanjen</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{selectedVillagePosyandu.count}</span>
+                  <span className="text-[10px] text-slate-400 block font-bold">Posyandu</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-black uppercase text-slate-400 tracking-wider block mb-1">
+                  Daftar Nama Posyandu & Layanan:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {selectedVillagePosyandu.posyandus.map((pName, pIdx) => {
+                    const isILP = pName.toLowerCase().includes('ilp');
+                    return (
+                      <div 
+                        key={pIdx}
+                        className={`p-3 rounded-xl border flex items-center justify-between text-xs font-bold transition-all ${
+                          isILP 
+                            ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 shadow-xs' 
+                            : 'bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="truncate">{pName}</span>
+                        </div>
+                        {isILP && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-600 text-white shrink-0">
+                            ILP
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-2">
+              <button
+                onClick={() => setSelectedVillagePosyandu(null)}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition cursor-pointer"
+              >
+                Selesai
               </button>
             </div>
           </div>
