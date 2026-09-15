@@ -80,6 +80,7 @@ export default function PublicArea({
   const [complaintCategory, setComplaintCategory] = useState('Waktu Tunggu & Antrean');
   const [complaintContent, setComplaintContent] = useState('');
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
+  const [lastSubmittedItem, setLastSubmittedItem] = useState<ComplaintItem | null>(null);
 
   // Ticket status checker state
   const [searchTicketId, setSearchTicketId] = useState('');
@@ -122,6 +123,7 @@ export default function PublicArea({
     };
 
     onSubmitComplaint(newItem);
+    setLastSubmittedItem(newItem);
     setSubmittedTicket(ticket);
 
     // Sync to Google Apps Script Webhook (Spreadsheet & WhatsApp) if configured
@@ -1246,17 +1248,40 @@ export default function PublicArea({
               </h2>
 
               {submittedTicket && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl text-xs text-emerald-900 dark:text-emerald-200 space-y-3">
                   <div className="flex items-center gap-1.5 font-bold text-sm text-emerald-700 dark:text-emerald-300">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Aduan Berhasil Disampaikan!</span>
+                    <span>Aduan Berhasil Disimpan!</span>
                   </div>
                   <p>
                     Nomor Tiket Anda: <strong className="font-mono text-sm px-1.5 py-0.5 bg-emerald-200 dark:bg-emerald-900 rounded">{submittedTicket}</strong>
                   </p>
                   <p className="text-[11px] text-emerald-800 dark:text-emerald-400">
-                    Simpan nomor tiket ini untuk mengecek status tindak lanjut aduan Anda pada kolom Cek Tiket di sebelah kanan.
+                    Laporan Anda telah tercatat secara sistem di Google Sheets Puskesmas Kepanjen. Untuk mempercepat respon admin, silakan kirim salinan laporan ini via WhatsApp dengan tombol di bawah ini:
                   </p>
+                  
+                  <div className="pt-1.5">
+                    <a
+                      href={`https://wa.me/${(siteSettings?.whatsappAdminPhone || siteSettings?.whatsapp || '08889924444').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        `📢 *LAPORAN PENGADUAN BARU - SIPANDU PEDULI*\n\n` +
+                        `• *No. Tiket:* ${lastSubmittedItem?.ticketId || submittedTicket}\n` +
+                        `• *Nama Pelapor:* ${lastSubmittedItem?.reporterName || '-'}\n` +
+                        `• *WhatsApp:* ${lastSubmittedItem?.reporterContact || '-'}\n` +
+                        `• *Unit Dituju:* ${lastSubmittedItem?.serviceTarget || '-'}\n` +
+                        `• *Kategori:* ${lastSubmittedItem?.category || '-'}\n\n` +
+                        `*Isi Aduan:*\n"${lastSubmittedItem?.content || '-'}"\n\n` +
+                        `Mohon bantuan admin untuk segera ditindaklanjuti. Terima kasih.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-xs transition-all duration-150 cursor-pointer text-xs"
+                    >
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.458L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.388 2.012 13.916.993 11.299.993c-5.442 0-9.87 4.372-9.874 9.802-.001 1.734.453 3.424 1.316 4.922L1.692 21.24l5.955-1.561zm11.023-7.512c-.328-.164-1.94-.959-2.241-1.07-.302-.11-.522-.164-.74.164-.219.328-.85 1.07-1.041 1.286-.192.217-.384.242-.712.078-.328-.164-1.386-.51-2.639-1.627-.973-.867-1.63-1.939-1.821-2.267-.192-.329-.02-.507.143-.671.147-.148.328-.384.493-.576.164-.192.219-.329.328-.548.11-.219.055-.411-.027-.575-.083-.164-.74-1.78-.1013-2.42-.267-.641-.527-.55-.724-.55h-.62c-.219 0-.576.082-.878.411-.302.329-1.151 1.123-1.151 2.739 0 1.616 1.178 3.178 1.342 3.397.164.219 2.318 3.535 5.616 4.961.785.34 1.398.543 1.881.697.788.25 1.505.215 2.071.13.632-.094 1.94-.792 2.215-1.558.275-.767.275-1.424.192-1.558-.083-.134-.302-.218-.629-.382z" />
+                      </svg>
+                      <span>Kirim Laporan via WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
               )}
 

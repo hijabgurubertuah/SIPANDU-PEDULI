@@ -237,6 +237,7 @@ export default function AdminPortal({
   const [appScriptUrl, setAppScriptUrl] = useState(() => localStorage.getItem('sipandu_gas_url') || DEFAULT_APPS_SCRIPT_URL);
   const [driveFolderId, setDriveFolderId] = useState(() => localStorage.getItem('sipandu_drive_folder_id') || '');
   const [copiedScript, setCopiedScript] = useState(false);
+  const [appsScriptSubTab, setAppsScriptSubTab] = useState<'unified' | 'complaint' | 'drive'>('unified');
 
   // Complaint & WA Gateway Settings
   const [complaintWebhookUrl, setComplaintWebhookUrl] = useState(() => siteSettings.complaintWebhookUrl || localStorage.getItem('sipandu_complaint_webhook_url') || localStorage.getItem('sipandu_gas_url') || '');
@@ -793,34 +794,16 @@ export default function AdminPortal({
   // ====================================================
   const googleAppsScriptCode = `/**
  * ============================================================================
- * GOOGLE APPS SCRIPT (GAS) - SIPANDU PEDULI UPTD PUSKESMAS KEPANJEN
+ * GOOGLE APPS SCRIPT (GAS) - SIPANDU PEDULI UPTD PUSKESMAS KEPANJEN (GRATIS)
  * ============================================================================
- * Fitur Utama:
- * 1. Simpan Otomatis Pengaduan & Aspirasi ke Tab Google Spreadsheet
- * 2. Notifikasi Otomatis ke WhatsApp Admin Puskesmas (Fonnte / Wablas API)
- * 3. Unggah Gambar / Foto ke Google Drive & Dapatkan Direct Thumbnail URL
- * 4. Sinkronisasi Data Master CMS & Pengaturan Aplikasi
- * 
- * PANDUAN DEPLOY:
- * 1. Buka Google Sheets Anda -> Ekstensi -> Apps Script
- * 2. Tempel seluruh kode ini (gantikan kode bawaan)
- * 3. Klik menu 'Deploy' -> 'Penerapan Baru' (New deployment)
- * 4. Tipe: 'Aplikasi Web' (Web app)
- * 5. Jalankan sebagai: 'Saya' (Me)
- * 6. Siapa yang memiliki akses: 'Siapa saja' (Anyone)
- * 7. Salin URL Web App dan tempelkan di Dashboard Admin SIPANDU PEDULI
+ * Fitur Utama (100% Bebas Biaya):
+ * 1. Simpan Otomatis Pengaduan & Aspirasi ke Google Spreadsheet
+ * 2. Unggah Gambar / Foto ke Google Drive & Dapatkan Link Direct Preview (lh3.googleusercontent.com)
  * ============================================================================
  */
 
-// SPREADSHEET & DRIVE CONFIGURATION
 var SPREADSHEET_ID = "${complaintSpreadsheetId || 'MASUKKAN_ID_SPREADSHEET_ANDA'}";
 var DRIVE_FOLDER_ID = "${driveFolderId || 'MASUKKAN_ID_FOLDER_DRIVE'}";
-
-// WHATSAPP GATEWAY CONFIGURATION
-var WA_ENABLE = ${whatsappApiKey ? 'true' : 'false'};
-var WA_PROVIDER = "${whatsappProvider || 'fonnte'}"; // 'fonnte' atau 'wablas'
-var WA_API_KEY = "${whatsappApiKey || 'MASUKKAN_API_KEY_FONNTE_ATAU_WABLAS'}";
-var WA_ADMIN_PHONE = "${whatsappAdminPhone || '08889924444'}";
 
 function doPost(e) {
   try {
@@ -860,7 +843,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 2. SIMPAN PENGADUAN / ASPIRASI WARGA KE SPREADSHEET & NOTIFIKASI WA
+    // 2. SIMPAN PENGADUAN / ASPIRASI WARGA KE SPREADSHEET
     var isComplaint = action === "complaint" || data.ticketId || data.reporterName;
     if (isComplaint) {
       var ticketId = data.ticketId || ("KPJ-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000));
@@ -905,29 +888,10 @@ function doPost(e) {
         ""
       ]);
 
-      // Kirim Notifikasi WhatsApp ke Admin jika Token diset
-      if (WA_ENABLE && WA_API_KEY && WA_ADMIN_PHONE) {
-        sendWaNotification(ticketId, reporterName, reporterContact, serviceTarget, category, content);
-      }
-
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: "Laporan aduan tersimpan di Google Sheets & WhatsApp terkirim!",
+        message: "Laporan aduan tersimpan di Google Sheets!",
         ticketId: ticketId
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 3. SIMPAN PENGATURAN SITE KE SPREADSHEET
-    if (action === "saveSettings") {
-      var ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
-      var sheet = ss.getSheetByName("CMS_SETTINGS") || ss.insertSheet("CMS_SETTINGS");
-      sheet.clear();
-      sheet.appendRow(["Key", "Value", "UpdatedAt"]);
-      sheet.appendRow(["siteSettings", JSON.stringify(data.siteSettings), new Date().toISOString()]);
-
-      return ContentService.createTextOutput(JSON.stringify({
-        status: "success",
-        message: "Pengaturan berhasil disinkronkan ke Google Spreadsheet!"
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -947,46 +911,152 @@ function doPost(e) {
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     status: "online",
-    system: "SIPANDU PEDULI Puskesmas Kepanjen — Apps Script Sync & WA Gateway",
+    system: "SIPANDU PEDULI Puskesmas Kepanjen — Apps Script Sync & Drive (Gratis)",
     timestamp: new Date().toISOString()
   })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function sendWaNotification(ticketId, name, contact, unit, category, content) {
-  try {
-    var messageText = "*🚨 ADUAN / ASPIRASI WARGA MASUK — SIPANDU PEDULI*\\n" +
-      "----------------------------------------\\n" +
-      "🎟️ *No. Tiket:* " + ticketId + "\\n" +
-      "👤 *Pelapor:* " + name + "\\n" +
-      "📞 *No. WA:* " + contact + "\\n" +
-      "🏥 *Unit Dituju:* " + unit + "\\n" +
-      "🏷️ *Kategori:* " + category + "\\n\\n" +
-      "📝 *Isi Laporan:*\\n\\"" + content + "\\"\\n" +
-      "----------------------------------------\\n" +
-      "📌 *Harap segera ditindaklanjuti via Portal Admin SIPANDU PEDULI Puskesmas Kepanjen.*";
-
-    if (WA_PROVIDER === "fonnte") {
-      UrlFetchApp.fetch("https://api.fonnte.com/send", {
-        method: "post",
-        headers: { "Authorization": WA_API_KEY },
-        payload: { target: WA_ADMIN_PHONE, message: messageText },
-        muteHttpExceptions: true
-      });
-    } else if (WA_PROVIDER === "wablas") {
-      UrlFetchApp.fetch("https://kepanjen.wablas.com/api/send-message", {
-        method: "post",
-        headers: { "Authorization": WA_API_KEY },
-        payload: { phone: WA_ADMIN_PHONE, message: messageText },
-        muteHttpExceptions: true
-      });
-    }
-  } catch (err) {
-    Logger.log("WA Notification error: " + err.toString());
-  }
 }`;
 
+  const getDisplayedScriptCode = (): string => {
+    if (appsScriptSubTab === 'complaint') {
+      return `/**
+ * ============================================================================
+ * GOOGLE APPS SCRIPT (GAS) - HANYA PENGADUAN & SPREADSHEET (SIPANDU PEDULI - GRATIS)
+ * ============================================================================
+ * Fitur Utama:
+ * 1. Simpan Otomatis Pengaduan & Aspirasi ke Google Spreadsheet
+ * ============================================================================
+ */
+
+var SPREADSHEET_ID = "${complaintSpreadsheetId || 'MASUKKAN_ID_SPREADSHEET_ANDA'}";
+
+function doPost(e) {
+  try {
+    var data = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (errParse) {
+        data = e.parameter || {};
+      }
+    } else if (e && e.parameter) {
+      data = e.parameter;
+    }
+
+    var ticketId = data.ticketId || ("KPJ-" + new Date().getFullYear() + "-" + Math.floor(1000 + Math.random() * 9000));
+    var reporterName = data.reporterName || "Anonim";
+    var reporterContact = data.reporterContact || "-";
+    var serviceTarget = data.serviceTarget || "Umum / Puskesmas";
+    var category = data.category || "Aspirasi / Pengaduan";
+    var content = data.content || "";
+    var dateStr = data.date || new Date().toLocaleString("id-ID");
+    var status = data.status || "Menunggu";
+
+    var ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Pengaduan & Aspirasi") || ss.insertSheet("Pengaduan & Aspirasi");
+
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        "Waktu Input",
+        "Nomor Tiket",
+        "Nama Pelapor",
+        "Kontak WA Pelapor",
+        "Unit Dituju",
+        "Kategori",
+        "Isi Laporan / Aspirasi",
+        "Status Aduan",
+        "Tindak Lanjut Admin"
+      ]);
+      var headerRange = sheet.getRange(1, 1, 1, 9);
+      headerRange.setBackground("#0d9488").setFontColor("#ffffff").setFontWeight("bold");
+    }
+
+    sheet.appendRow([
+      dateStr,
+      ticketId,
+      reporterName,
+      reporterContact,
+      serviceTarget,
+      category,
+      content,
+      status,
+      ""
+    ]);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "Data pengaduan berhasil tersimpan di Google Sheets!",
+      ticketId: ticketId
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+    }
+
+    if (appsScriptSubTab === 'drive') {
+      return `/**
+ * ============================================================================
+ * GOOGLE APPS SCRIPT (GAS) - HANYA UNGGAH GAMBAR GOOGLE DRIVE (SIPANDU PEDULI - GRATIS)
+ * ============================================================================
+ * Fitur Utama:
+ * 1. Unggah Gambar / Foto ke Google Drive Tanpa Login Akun Warga
+ * 2. Menghasilkan Link Direct Preview (lh3.googleusercontent.com) Secara Instan
+ * ============================================================================
+ */
+
+var DRIVE_FOLDER_ID = "${driveFolderId || 'MASUKKAN_ID_FOLDER_DRIVE'}";
+
+function doPost(e) {
+  try {
+    var data = {};
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (errParse) {
+        data = e.parameter || {};
+      }
+    } else if (e && e.parameter) {
+      data = e.parameter;
+    }
+
+    var folder = DRIVE_FOLDER_ID ? DriveApp.getFolderById(DRIVE_FOLDER_ID) : DriveApp.getRootFolder();
+    var base64Data = data.base64.split(",")[1] || data.base64;
+    var decodedBytes = Utilities.base64Decode(base64Data);
+    var blob = Utilities.newBlob(decodedBytes, data.mimeType || "image/png", data.fileName || "file_upload.png");
+    
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    var fileId = file.getId();
+    var directThumbnailUrl = "https://lh3.googleusercontent.com/d/" + fileId;
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "File berhasil disimpan di Google Drive!",
+      fileId: fileId,
+      fileName: file.getName(),
+      thumbnailUrl: directThumbnailUrl,
+      driveUrl: file.getUrl()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+    }
+
+    return googleAppsScriptCode;
+  };
+
   const copyScriptToClipboard = () => {
-    navigator.clipboard.writeText(googleAppsScriptCode);
+    navigator.clipboard.writeText(getDisplayedScriptCode());
     setCopiedScript(true);
     showToast('Kode Apps Script berhasil disalin ke clipboard!');
     setTimeout(() => setCopiedScript(false), 3000);
@@ -3747,7 +3817,7 @@ function sendWaNotification(ticketId, name, contact, unit, category, content) {
 
                 {/* Kode Google Apps Script Ready-to-Copy */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <Code className="w-4 h-4 text-teal-600" />
                       <span>Kode Apps Script (Code.gs) Siap Tempel</span>
@@ -3755,16 +3825,53 @@ function sendWaNotification(ticketId, name, contact, unit, category, content) {
                     <button
                       type="button"
                       onClick={copyScriptToClipboard}
-                      className="text-xs text-rose-600 font-extrabold hover:underline flex items-center gap-1"
+                      className="text-xs text-rose-600 font-extrabold hover:underline flex items-center gap-1 self-start sm:self-auto"
                     >
                       {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copiedScript ? 'Kode Tersalin' : 'Salin Kode ke Clipboard'}</span>
                     </button>
                   </div>
 
+                  {/* Sub-tab Switcher for Apps Script Code */}
+                  <div className="flex flex-wrap gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-max border border-slate-200/50 dark:border-slate-700/50">
+                    <button
+                      type="button"
+                      onClick={() => setAppsScriptSubTab('unified')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                        appsScriptSubTab === 'unified'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                      }`}
+                    >
+                      🌟 Skrip Tunggal Terpadu (Sangat Direkomendasikan)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAppsScriptSubTab('complaint')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                        appsScriptSubTab === 'complaint'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                      }`}
+                    >
+                      📝 Hanya Pengaduan & Sheets
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAppsScriptSubTab('drive')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition cursor-pointer ${
+                        appsScriptSubTab === 'drive'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                      }`}
+                    >
+                      📁 Hanya Unggah Gambar Drive
+                    </button>
+                  </div>
+
                   <div className="rounded-2xl bg-slate-950 p-4 border border-slate-800 overflow-hidden">
                     <pre className="font-mono text-[11px] text-teal-300 leading-relaxed overflow-x-auto max-h-80 selection:bg-teal-700 selection:text-white">
-                      {googleAppsScriptCode}
+                      {getDisplayedScriptCode()}
                     </pre>
                   </div>
                 </div>
