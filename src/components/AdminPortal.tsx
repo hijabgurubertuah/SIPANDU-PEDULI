@@ -671,10 +671,11 @@ export default function AdminPortal({
     let detectedFolderId = driveFolderId;
 
     // Direct upload to Google Apps Script endpoint if configured
-    if (appScriptUrl && uploadPreviewUrl && uploadPreviewUrl.startsWith('data:')) {
+    const targetGasUrl = appScriptUrl || complaintWebhookUrl || localStorage.getItem('sipandu_gas_url') || localStorage.getItem('sipandu_complaint_webhook_url');
+    if (targetGasUrl && uploadPreviewUrl && uploadPreviewUrl.startsWith('data:')) {
       try {
         const base64Content = uploadPreviewUrl.split(',')[1] || uploadPreviewUrl;
-        const res = await fetch(appScriptUrl, {
+        const res = await fetch(targetGasUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({

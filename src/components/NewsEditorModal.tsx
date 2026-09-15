@@ -203,7 +203,7 @@ export default function NewsEditorModal({
       const base64 = event.target?.result as string;
       setImageUrl(base64); // Show local preview instantly
 
-      const appScriptUrl = localStorage.getItem('sipandu_gas_url') || 'https://script.google.com/macros/s/AKfycbzlnTOpIX84wHErTrqXRV9lFMCxCoxwcwWKQEMUb988UrB3FERMdi_HceZM5P3yh9bUKQ/exec';
+      const appScriptUrl = localStorage.getItem('sipandu_gas_url') || localStorage.getItem('sipandu_complaint_webhook_url') || 'https://script.google.com/macros/s/AKfycbzlnTOpIX84wHErTrqXRV9lFMCxCoxwcwWKQEMUb988UrB3FERMdi_HceZM5P3yh9bUKQ/exec';
       const driveFolderId = localStorage.getItem('sipandu_drive_folder_id') || '';
 
       if (appScriptUrl && base64.startsWith('data:')) {
